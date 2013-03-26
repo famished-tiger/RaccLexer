@@ -33,7 +33,7 @@ public
   # matches the token_type of the rule.
   # Return nil or a pair of the form [token type, Token object]
   def apply_to(aToken)
-    raise InternalLexerError.new("Only RaccLexer::Token objects can be transformed. Found a #{aToken.class} instead.", nil) unless aToken.kind_of?(Token)
+    raise InternalLexerError.new("only RaccLexer::Token objects can be transformed. Found a #{aToken.class} instead.", nil) unless aToken.kind_of?(Token)
     
     return transformation.call(aToken)
   end
@@ -41,16 +41,16 @@ public
 
 private
   def validated_token_type(aTokenType)
-    raise InternalLexerError.new("A token type can only be a Symbol or a character", nil) unless [Symbol, String].include? aTokenType.class
+    raise LexerSetupError.new("A token type can only be a Symbol or a character") unless [Symbol, String].include? aTokenType.class
     if aTokenType.kind_of?(String)
-      raise InternalLexerError.new("Found a token type that is a String with size != 1", nil) unless aTokenType.size != 1
+      raise LexerSetupError.new("Found a token type that is a String with size != 1") unless aTokenType.size != 1
     end
     
     return aTokenType
   end
   
   def validated_transformation(aTransformation)
-    raise InternalLexerError.new("A transformation should respond to the call message", nil) unless aTransformation.respond_to?(:call)
+    raise LexerSetupError.new("A transformation should respond to the call message") unless aTransformation.respond_to?(:call)
     
     return aTransformation
   end

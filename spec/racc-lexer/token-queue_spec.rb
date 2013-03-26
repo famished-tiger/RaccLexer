@@ -87,20 +87,20 @@ describe TokenQueue do
     
     
     it "should complain when input argument isn't a couple" do
-      error_message = "A token queue element must be an Array."
+      error_message = "Internal error: a token queue element must be an Array."
       lambda { subject.enqueue("Wrong argument type") }.should raise_error(InternalLexerError, error_message)
     end
 
 
     it "should complain when input argument is an Array of size != 2" do
-      error_message = "Token queue accepts Array of size 2 only."
+      error_message = "Internal error: token queue accepts Array of size 2 only."
       lambda { subject.enqueue([]) }.should raise_error(InternalLexerError, error_message)
       lambda { subject.enqueue([:ONE_ELEMENT]) }.should raise_error(InternalLexerError, error_message)
       lambda { subject.enqueue([:THREE_ELEMENTS, 'a', 'b']) }.should raise_error(InternalLexerError, error_message)          
     end
     
     it "should complain when input argument does not have a char or a Symbol as its first element" do
-      error_message = "Token type must be a String or Symbol, found a Fixnum instead."
+      error_message = "Internal error: token type must be a String or Symbol, found a Fixnum instead."
       lambda { subject.enqueue([1234, 'first element is wrong']) }.should raise_error(InternalLexerError, error_message)       
     end
     
@@ -134,7 +134,7 @@ describe TokenQueue do
   
   context "Dequeuing tokens" do
     it "should complain when the queue is empty" do
-      error_message = "Cannot dequeue: token queue is already empty."
+      error_message = "Internal error: cannot dequeue: the token queue is already empty."
       lambda { subject.dequeue }.should raise_error(InternalLexerError, error_message)
     end  
   end # context

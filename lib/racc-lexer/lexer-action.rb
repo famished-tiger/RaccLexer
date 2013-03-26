@@ -206,7 +206,7 @@ class ActionSequence < LexerAction
 	# Constructor.
 	# [childrenActions] an Array of actions to execute in sequence
 	def initialize(childrenActions)
-		raise StandardError, "Empty action list." if childrenActions.empty?
+		raise LexerSetupError, "Empty action list." if childrenActions.empty?
 		childrenActions.all? { |anAction| validated_action(anAction) }
 		@sequence = childrenActions
 	end
@@ -232,9 +232,9 @@ public
 	
 private	
 	# Return the given pattern after its validation
-	# An StandardError exception is raised if the argument does not meet the validation.	
+	# An LexerSetupError exception is raised if the argument does not meet the validation.	
 	def validated_action(anAction)
-		raise TypeError, "#{anAction} is not a LexerAction" unless anAction.kind_of?(LexerAction)
+		raise LexerSetupError, "#{anAction} is not a LexerAction" unless anAction.kind_of?(LexerAction)
 		
 		return anAction
 	end
@@ -298,15 +298,15 @@ protected
 	
 private
 	# Return the given pattern after its validation
-	# An StandardError exception is raised if the argument does not meet the validation.
+	# A LexerSetupError exception is raised if the argument does not meet the validation.
 	def validated_pattern(aPattern)
-		raise StandardError, "Pattern argument must be a String or a Regexp." unless [Regexp, String].include? aPattern.class()
+		raise LexerSetupError, "Pattern argument must be a String or a Regexp." unless [Regexp, String].include? aPattern.class()
 	
 		return aPattern
 	end
 	
 	# Return the given pattern after its validation
-	# An StandardError exception is raised if the argument does not meet the validation.	
+	# A TypeError exception is raised if the argument does not meet the validation.	
 	def validated_action(anAction)
 		raise TypeError, "#{anAction} is not a LexerAction" unless anAction.kind_of?(LexerAction)
 		
@@ -365,7 +365,7 @@ protected
 	def comparison(theLexer)
 		result = case pattern
 			when String
-				raise StandardError, "Not yet implemented" #theLexer.lexeme == pattern	# Exact match
+				raise InternalLexerError.new("Not yet implemented", nil) #theLexer.lexeme == pattern	# Exact match
 				
 			when Regexp
 				theLexer.scan(pattern)	# Approximate match
@@ -427,7 +427,7 @@ public
 	end		
 
 private
-		# An StandardError exception is raised if the argument does not meet the validation.	
+		# An TypeError exception is raised if the argument does not meet the validation.	
 	def validated_action(anAction)
 		raise TypeError, "#{anAction} is not a LexerAction" unless anAction.kind_of?(LexerAction)
 		
@@ -486,15 +486,15 @@ public
 	
 private
 	# Return the given pattern after its validation
-	# An StandardError exception is raised if the argument does not meet the validation.
+	# A LexerSetupError exception is raised if the argument does not meet the validation.
 	def validated_pattern(aPattern)
-		raise StandardError, "Pattern argument must be a String or a Regexp." unless [Regexp, String].include? aPattern.class()
+		raise LexerSetupError, "Pattern argument must be a String or a Regexp." unless [Regexp, String].include? aPattern.class()
 	
 		return aPattern
 	end
 	
 	# Return the given pattern after its validation
-	# An StandardError exception is raised if the argument does not meet the validation.	
+	# An TypeError exception is raised if the argument does not meet the validation.	
 	def validated_action(anAction)
 		raise TypeError, "#{anAction} is not a LexerAction" unless anAction.kind_of?(LexerAction)
 		

@@ -7,7 +7,14 @@ require_relative 'lexer-action'
 module RaccLexer	# This module is used as a namespace
 
 
-# A tokenizing rule tells a Lexer what to do after a character has been read.
+# A lexer rule tells a Lexer what to do when an input character has been read.
+# A lexer rule has:
+#- a name, so that another rule can reference this one.
+# It may also have:
+#- one "before action" that operate on currently scanned lexeme (e.g. build a token from it, clear the lexeme)
+#- one or more event handlers. One event handler tells what to do when a specific character or
+# a text that matches a regexp was found in the input stream.
+#- one default action. It is launched when the input text doesn't match any handler event.
 class LexerRule
 	include AbstractMethod
 	
@@ -76,7 +83,7 @@ protected
 	# return the passed name after validation.
 	# Rule: name cannot be empty
 	def validated_name(aName)
-		raise StandardError, "Rule cannot haven an empty name" if aName.empty?
+		raise LexerSetupError, "Rule cannot have an empty name" if aName.empty?
 		return aName
 	end
 
@@ -88,7 +95,7 @@ protected
 	# Return the validated before action.
 	# An exception is raised when the action is not a Lexer action nor nil.	
 	def validated_action(aBeforeAction)
-		raise StandardError, "Rule '#{name}': invalid before action '#{aBeforeAction}'." unless aBeforeAction.nil? || aBeforeAction.kind_of?(LexerAction)
+		raise LexerSetupError, "Rule '#{name}': invalid before action '#{aBeforeAction}'." unless aBeforeAction.nil? || aBeforeAction.kind_of?(LexerAction)
 		
 		return aBeforeAction
 	end	
@@ -101,7 +108,7 @@ protected
 		action = anAction.nil? ? default_action : anAction
 		begin
 			result = action.apply_to(theLexer)
-		rescue StandardError => exc
+		rescue LexerSetupError => exc
 			raise exc	# Re-raise the exception
 		end
 		return result
@@ -149,7 +156,7 @@ protected
 	# An exception is raised when the pattern consists of more than one character.
 	def validated_handler(aHandler)
 		if aHandler.pattern.kind_of?(String)
-			raise StandardError, "Only single character can be handled in standard Lexer rule" unless aHandler.pattern.length == 1			
+			raise LexerSetupError, "Only single character can be handled in standard Lexer rule" unless aHandler.pattern.length == 1			
 		end
 	
 		return aHandler
@@ -163,6 +170,9 @@ end # class
 # When a match is found, then 
 # that accepts the read character.
 # Each event handler should match a single character.
+
+require_relative 'lexer-exceptions'
+
 class LookaheadRule < LexerRule
 	# Constructor.
 	# [aName]	A Symbolic name for the rule.

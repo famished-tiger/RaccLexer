@@ -19,7 +19,7 @@ describe LexemePosition do
     end
 
     it 'should complain when the line pos takes an unrealistic value' do
-      error_message = "Invalid value for position relative to start of in line"
+      error_message = "Internal error: invalid value for position relative to start of in line"
        lambda { LexemePosition.new(10, 1, 15) }.should raise_error(InternalLexerError, error_message)
     end
 
@@ -49,12 +49,12 @@ describe LexemePosition do
     end
 
     it 'should complain when compared to an empty array' do
-      error_message = "Empty array may not specify a token position"
+      error_message = "Internal error: empty array may not specify a token position"
        lambda { subject == [] }.should raise_error(InternalLexerError, error_message)
     end
     
     it 'should complain when compared to an array of non-Fixnum' do
-      error_message = "Only integers allowed for token position"
+      error_message = "Internal error: only integers allowed for token position"
        lambda { subject == %w[a b c] }.should raise_error(InternalLexerError, error_message)
     end
     
@@ -80,7 +80,7 @@ describe LexemePosition do
     end
 
     it 'should complain when compared to an array of size > 3' do
-      error_message = "Wrong array size for specifying a token position"
+      error_message = "Internal error: wrong array size for specifying a token position"
       lambda { subject == [10, 1, 5, 0] }.should raise_error(InternalLexerError, error_message)    
     end
     

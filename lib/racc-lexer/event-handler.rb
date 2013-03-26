@@ -46,9 +46,9 @@ public
 
 private
 	# Return the given pattern after its validation
-	# A StandardError exception is raised if the argument does not meet the validation.
+	# A InternalLexerError exception is raised if the argument does not meet the validation.
 	def validated_pattern(aPattern)
-		raise StandardError, "Pattern argument must be a String or a Regexp." unless [Regexp, String].include? aPattern.class()
+		raise InternalLexerError, "Pattern argument must be a String or a Regexp." unless [Regexp, String].include? aPattern.class()
 	
 		return aPattern
 	end

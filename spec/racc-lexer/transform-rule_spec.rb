@@ -43,11 +43,11 @@ describe TransformRule do
       
       # Invalid case: wrong token type
       error_message = "A token type can only be a Symbol or a character"
-      lambda { TransformRule.new(12345, sample_transformation) }.should raise_error(InternalLexerError, error_message)
+      lambda { TransformRule.new(12345, sample_transformation) }.should raise_error(LexerSetupError, error_message)
       
       # Invalid case: wrong transformation object
       error_message = "A transformation should respond to the call message"
-      lambda { TransformRule.new(sample_token_type, 12345) }.should raise_error(InternalLexerError, error_message)      
+      lambda { TransformRule.new(sample_token_type, 12345) }.should raise_error(LexerSetupError, error_message)      
     end
     
   
@@ -73,7 +73,7 @@ describe TransformRule do
       end
       
       it "should complain when asked to apply itself to a non-Token object" do
-        error_message = "Only RaccLexer::Token objects can be transformed. Found a String instead."
+        error_message = "Internal error: only RaccLexer::Token objects can be transformed. Found a String instead."
         lambda { subject.apply_to("foobar") }.should raise_error(InternalLexerError, error_message) 
       end
     end

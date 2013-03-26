@@ -52,10 +52,10 @@ public
 				are_equal = (offset == another)
 
 			when Array
-				raise InternalLexerError.new("Only integers allowed for token position", nil) unless another.all? {|item| item.kind_of?(Fixnum) }
+				raise InternalLexerError.new("only integers allowed for token position", nil) unless another.all? {|item| item.kind_of?(Fixnum) }
 				case another.size
 					when 0
-						raise InternalLexerError.new("Empty array may not specify a token position", nil)
+						raise InternalLexerError.new("empty array may not specify a token position", nil)
 
 					when 1
 						are_equal = another[0] == offset
@@ -66,7 +66,7 @@ public
 					when 3
 						are_equal = (another[0] == offset) && (another[1] == lineno) && (another[2] == line_pos)
 					else
-						raise InternalLexerError.new("Wrong array size for specifying a token position", nil)
+						raise InternalLexerError.new("wrong array size for specifying a token position", nil)
 				end
 
 			else
@@ -82,7 +82,7 @@ private
   # Check that the value of the position in line is in the correct range.
   # Return the valid value, otherwise an exception is raised.
   def valid_line_offset(aPositionInLine)
-    raise InternalLexerError.new("Invalid value for position relative to start of in line", nil) if aPositionInLine > (@offset - @lineno + 1)
+    raise InternalLexerError.new("invalid value for position relative to start of in line", nil) if aPositionInLine > (@offset - @lineno + 1)
     
     return aPositionInLine
   end

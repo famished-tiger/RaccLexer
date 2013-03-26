@@ -68,7 +68,7 @@ public
   # An exception is raised if the queue is empty.
   def dequeue()
     element = tokens.pop()
-    raise InternalLexerError.new("Cannot dequeue: token queue is already empty.", nil) if element.nil?
+    raise InternalLexerError.new("cannot dequeue: the token queue is already empty.", nil) if element.nil?
     
     return element
   end
@@ -79,10 +79,10 @@ private
   # -The first element is a String or a Symbol
   # When valid, returns the input argument. Otherwise an exception is raised.
   def validated_couple(aTokenCouple)
-    raise InternalLexerError.new("A token queue element must be an Array.", nil) unless aTokenCouple.kind_of?(Array)
-    raise InternalLexerError.new("Token queue accepts Array of size 2 only.", nil) unless aTokenCouple.size == 2
+    raise InternalLexerError.new("a token queue element must be an Array.", nil) unless aTokenCouple.kind_of?(Array)
+    raise InternalLexerError.new("token queue accepts Array of size 2 only.", nil) unless aTokenCouple.size == 2
     (token_type, token_object) = aTokenCouple
-    raise InternalLexerError.new("Token type must be a String or Symbol, found a #{token_type.class} instead.", nil) unless token_type.kind_of?(String) || token_type.kind_of?(Symbol)
+    raise InternalLexerError.new("token type must be a String or Symbol, found a #{token_type.class} instead.", nil) unless token_type.kind_of?(String) || token_type.kind_of?(Symbol)
     
     return aTokenCouple
   end

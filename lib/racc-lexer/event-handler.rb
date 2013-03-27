@@ -1,5 +1,7 @@
 # File: event-handler.rb
 
+require_relative 'lexer-exceptions'
+
 module RaccLexer # This module is used as a namespace
 
 # In essence, an event handler is a pair: pattern, action. It specifies the action to launch
@@ -46,17 +48,17 @@ public
 
 private
 	# Return the given pattern after its validation
-	# A InternalLexerError exception is raised if the argument does not meet the validation.
+	# A LexerSetupError exception is raised if the argument does not meet the validation.
 	def validated_pattern(aPattern)
-		raise InternalLexerError, "Pattern argument must be a String or a Regexp." unless [Regexp, String].include? aPattern.class()
+		raise LexerSetupError, "Expected a String or a Regexp argument, got a #{aPattern.class} instead." unless [Regexp, String].include? aPattern.class()
 	
 		return aPattern
 	end
 	
 	# Return the given pattern after its validation
-	# A TypeError exception is raised if the argument does not meet the validation.	
+	# A LexerSetupError exception is raised if the argument does not meet the validation.	
 	def validated_action(anAction)
-		raise TypeError, "#{anAction} is not a LexerAction" unless anAction.kind_of?(LexerAction)
+		raise LexerSetupError, "Expected a LexerAction argument, got a #{anAction.class} instead." unless anAction.kind_of?(LexerAction)
 		
 		return anAction
 	end

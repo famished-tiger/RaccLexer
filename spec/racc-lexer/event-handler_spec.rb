@@ -15,7 +15,15 @@ describe EventHandler do
 		it 'should be created with a pattern and an action' do
 			# Error case: created without any argument
 			lambda { EventHandler.new }.should raise_error(ArgumentError, 'wrong number of arguments (0 for 2)')
-
+      
+      # Error case: first argument isn't a regexp nor a string.
+      error_message = "Expected a String or a Regexp argument, got a Fixnum instead."
+			lambda { EventHandler.new(1234, EnqueueToken.new('(')) }.should raise_error(LexerSetupError, error_message)
+      
+      # Error case: second argument isn't a regexp nor a string.
+      error_message = "Expected a LexerAction argument, got a String instead."
+			lambda { EventHandler.new('(', "wrong: not a LexerAction object") }.should raise_error(LexerSetupError, error_message)      
+      
 			# Valid case
 			lambda { EventHandler.new('(', EnqueueToken.new('(')) }.should_not raise_error
 		end

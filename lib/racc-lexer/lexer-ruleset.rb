@@ -21,7 +21,7 @@ class LexerRuleset
 	# Constructor. Begin with an empty rule set.
 	def initialize()
 		@rules = {}
-		@token_type = nil
+		@token_types = nil
 	end
 	
 public
@@ -34,10 +34,10 @@ public
 	end
 	
 	# Add a given rule to the rule set.
-	# A LexerRuleError is raised if there is already a rule having the same name (unicity!).
+	# A LexerSetupError is raised if there is already a rule having the same name (unicity!).
 	def add_rule(aLexerRule)
-		raise LexerRuleError.new("The rule set has no token types defined", nil) if @token_types.nil?
-		raise LexerRuleError.new("Two tokenizing rules may not have the same name #{aLexerRule.name}.", nil) if rules.has_key? aLexerRule.name
+		raise LexerSetupError "The rule set has no token types defined" if @token_types.nil?
+		raise LexerSetupError "Two tokenizing rules may not have the same name #{aLexerRule.name}." if rules.has_key? aLexerRule.name
     
     validated_rule = validate_rule(aLexerRule)    
 		rules[aLexerRule.name] = validated_rule
@@ -49,7 +49,7 @@ public
 		rules.values.each do |aRule|
 			subrule_invokations = aRule.all_actions.select { |act| act.kind_of?(ApplySubrule) }
 			subrule_invokations.each do |invokation| 
-				raise LexerRuleError, "Reference to unknown subrule '#{invokation.rulename}' in rule '#{aRule.name}'." unless rules.has_key? invokation.rulename 
+				raise LexerSetupError, "Reference to unknown subrule '#{invokation.rulename}' in rule '#{aRule.name}'." unless rules.has_key? invokation.rulename 
 			end
 		end
 	end

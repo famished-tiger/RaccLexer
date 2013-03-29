@@ -2,12 +2,14 @@
 
 [Homepage](https://github.com/famished-tiger/RaccLexer)
 
- 
-A lexer (aka lexical scanner or tokenizer) has for purpose to break the input text into a sequence of tokens
- and to pass these tokens to the parser. RaccLexer was designed to work with the RACC parser.
 
-##RaccLexer Vision##
-It should:
+##What is RaccLexer? 
+- RaccLexer is a lexer (aka lexical scanner or tokenizer) designed to work with the [RACC](http://rubygems.org/gems/racc) parser.
+- A lexer, in itself, has for purpose to break the input text into a sequence of tokens
+ and to pass these tokens to the parser.
+
+##RaccLexer Vision
+###It should:  
 - Become a Ruby gem  
 - Provide a DSL (Domain Specific Language) helping you to build and tailor a lexer for your favourite language.
 - Associate useful context data with each token passed to the parser (e.g. line number,

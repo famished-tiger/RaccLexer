@@ -33,7 +33,7 @@ class TokenQueue
     
     transformRules.each do |a_rule|
       raise TypeError unless a_rule.kind_of?(TransformRule)
-      raise LexerRuleError.new("More than one transform rule for token type '#{ a_rule.token_type}'", nil) if rules.has_key? a_rule.token_type
+      raise LexerRuleError "More than one transform rule for token type '#{ a_rule.token_type}'" if rules.has_key? a_rule.token_type
      
       @rules[a_rule.token_type] = a_rule # Add the rule...
     end

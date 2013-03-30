@@ -36,8 +36,8 @@ public
 	# Add a given rule to the rule set.
 	# A LexerSetupError is raised if there is already a rule having the same name (unicity!).
 	def add_rule(aLexerRule)
-		raise LexerSetupError "The rule set has no token types defined" if @token_types.nil?
-		raise LexerSetupError "Two tokenizing rules may not have the same name #{aLexerRule.name}." if rules.has_key? aLexerRule.name
+		raise LexerSetupError, "The rule set has no token types defined" if @token_types.nil?
+		raise LexerRuleError, "Two tokenizing rules may not have the same name #{aLexerRule.name}." if rules.has_key? aLexerRule.name
     
     validated_rule = validate_rule(aLexerRule)    
 		rules[aLexerRule.name] = validated_rule
@@ -49,7 +49,7 @@ public
 		rules.values.each do |aRule|
 			subrule_invokations = aRule.all_actions.select { |act| act.kind_of?(ApplySubrule) }
 			subrule_invokations.each do |invokation| 
-				raise LexerSetupError, "Reference to unknown subrule '#{invokation.rulename}' in rule '#{aRule.name}'." unless rules.has_key? invokation.rulename 
+				raise LexerRuleError, "Reference to unknown subrule '#{invokation.rulename}' in rule '#{aRule.name}'." unless rules.has_key? invokation.rulename 
 			end
 		end
 	end
@@ -61,7 +61,7 @@ public
 		# Actions using a token type must refer to a known token types 
 		actions_with_token = aLexerRule.all_actions.select { |anAction| anAction.kind_of?(EnqueueToken) }
 		actions_with_token.each do |action|
-			raise LexerRuleError.new("Rule '#{aLexerRule.name}' refers to unknown token type '#{action.token_type}'", nil) unless token_types.has_key?(action.token_type)
+			raise LexerRuleError, "Rule '#{aLexerRule.name}' refers to unknown token type '#{action.token_type}'" unless token_types.has_key?(action.token_type)
 		end
 		
 		return aLexerRule

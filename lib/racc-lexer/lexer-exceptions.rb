@@ -22,6 +22,10 @@ end # class
 class LexerSetupError < LexerError
 end # class
 
+# A specialised exception class that indicates that an issue in the rules provided to the lexer occurred. 
+class LexerRuleError < LexerError
+end # class
+
 
 
 # An exception class for errors detected while the lexer
@@ -54,10 +58,6 @@ class InternalLexerError < LexingError
 
 end # class
 
-
-# A specialised exception class that indicates that an issue in the rules provided to the lexer occurred. 
-class LexerRuleError < LexingError
-end # class
 
 
 # A specialised exception class that indicates that the input text

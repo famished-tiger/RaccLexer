@@ -113,7 +113,7 @@ EOS
 
     it "should complain when adding a rule without registered token types" do
       error_message = "The rule set has no token types defined"
-      lambda { subject.add_rule(rule1) }.should raise_error(LexerRuleError, error_message)
+      lambda { subject.add_rule(rule1) }.should raise_error(LexerSetupError, error_message)
     end
 
 

@@ -95,7 +95,7 @@ describe StandardRule do
 				lambda {StandardRule.new(:some_rule, nil) }.should_not raise_error
 				
 				# Case 3: incorrect before action
-				lambda {StandardRule.new(:some_rule, 'Something wrong') }.should raise_error(LexerSetupError, "Rule 'some_rule': invalid before action 'Something wrong'.")
+				lambda {StandardRule.new(:some_rule, 'Something wrong') }.should raise_error(LexerRuleError, "Rule 'some_rule': invalid before action 'Something wrong'.")
 			end
 			
 			it 'should know its before action' do

@@ -100,7 +100,7 @@ describe TokenQueue do
     end
     
     it "should complain when input argument does not have a char or a Symbol as its first element" do
-      error_message = "Internal error: token type must be a String or Symbol, found a Fixnum instead."
+      error_message = "Internal error: token type must be a String, Symbol or false found a Fixnum instead."
       lambda { subject.enqueue([1234, 'first element is wrong']) }.should raise_error(InternalLexerError, error_message)       
     end
     

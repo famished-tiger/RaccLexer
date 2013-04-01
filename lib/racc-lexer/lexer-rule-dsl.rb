@@ -6,7 +6,6 @@ require_relative 'lexer-ruleset'
 
 module RaccLexer	# This module is used as a namespace
 
-module Scanning	# This module is used as a namespace
 
 # Utility class that defines a DSL (Domain-specific language) to build LexerRules.
 class LexerRuleDsl
@@ -159,8 +158,6 @@ private
 		@ruleset.validate_rule(aRule)	
 	end
 end # class
-
-end # module
 
 end # module
 

@@ -30,6 +30,10 @@ describe AbstractLexer do
     it 'should refuse to scan in absence of input text' do
       lambda { subject.next_token() }.should raise_error(LexerError, "No input text was provided.")
     end
+    
+    it 'should have an empty token queue' do
+      subject.queue.should be_empty
+    end
   end
   
   

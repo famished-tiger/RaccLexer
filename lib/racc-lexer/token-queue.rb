@@ -82,7 +82,7 @@ private
     raise InternalLexerError.new("a token queue element must be an Array.", nil) unless aTokenCouple.kind_of?(Array)
     raise InternalLexerError.new("token queue accepts Array of size 2 only.", nil) unless aTokenCouple.size == 2
     (token_type, token_object) = aTokenCouple
-    raise InternalLexerError.new("token type must be a String or Symbol, found a #{token_type.class} instead.", nil) unless token_type.kind_of?(String) || token_type.kind_of?(Symbol)
+    raise InternalLexerError.new("token type must be a String, Symbol or false found a #{token_type.class} instead.", nil) unless [String, Symbol, FalseClass].include? token_type.class
     
     return aTokenCouple
   end

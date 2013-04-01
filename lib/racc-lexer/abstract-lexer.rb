@@ -6,6 +6,7 @@ require "edge-state-machine"  # https://github.com/danpersa/edge-state-machine
 
 require_relative '../abstract-method'
 require_relative 'token'
+require_relative 'token-queue'
 
 module RaccLexer	# This module is used as a namespace
 
@@ -170,6 +171,7 @@ class AbstractLexer
 	def initialize()    
     @significant_indentation = false
     @eol_as_token = false
+		@queue = TokenQueue.new   
   end
 
 public  
@@ -207,7 +209,7 @@ public
       
       enqueue_next_tokens() # Retrieve token(s) from the input text & enqueue them
     end
-    theToken = queue.pop()
+    theToken = queue.dequeue()
 		return theToken
   end
 
@@ -239,7 +241,7 @@ public
   def enqueue_eos_marker()
 		position = build_position(:eos)
 		eos_marker =  [false, RaccLexer::Token.new('$', '$', position)]  
-    queue.unshift eos_marker
+    queue.enqueue eos_marker
   end
   
   
@@ -267,7 +269,6 @@ protected
   def reset()
     @lineno = 1
 		@line_offset = 0
-		@queue = []   
   end
 
   # Purpose = Make the lexeme text empty.

@@ -10,14 +10,14 @@ module RaccLexer # This module is used as a namespace
 # the tokens found in the input text stream by the lexer.
 # The queue elements should be in the format compatible with a RACC-generated parser:
 # An array of two elements with the:
-# -first element being either the token type (a single character or
-# a Symbol that appears in the tokens section of the RACC grammar file).
-# -second element being a RaccLexer::Token object.
+#  - first element being either the token type (a single character or
+#  a Symbol that appears in the tokens section of the RACC grammar file).
+#  - second element being a RaccLexer::Token object.
 # A TokenQueue does a little more than a simple queue: when an element is being enqueued
 # it will activate a transformation rule matching the token type (if present).
 # A transformation rule can be used to modify, normalise or even dismiss the input element.
 class TokenQueue
-  # The link to the lower-level queue of tokens
+  # The lower-level queue of tokens
   attr_reader(:tokens)
   
   # A Hash with with pairs of the kind:
@@ -48,7 +48,7 @@ public
   # Given the token pair passed as argument, enqueue it after subjecting it to a transformation
   # rule (if any).
   # [aTokenCouple] a couple of the form:
-  # [token type, a Token object]
+  #   [[token type, a Token object]]
   def enqueue(aTokenCouple)
     valid_couple = validated_couple(aTokenCouple)
     (token_type, token_object) = valid_couple
@@ -65,7 +65,7 @@ public
   end
   
   # Take an element from the queue.
-  # An exception is raised if the queue is empty.
+  # An InternalLexerError exception is raised if the queue is empty.
   def dequeue()
     element = tokens.pop()
     raise InternalLexerError.new("cannot dequeue: the token queue is already empty.", nil) if element.nil?

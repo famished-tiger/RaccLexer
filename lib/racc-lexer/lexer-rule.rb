@@ -130,11 +130,11 @@ class StandardRule < LexerRule
 	end
 	
 public
-	# Re-defined method. Apply the rule to the given Lexer.
-	# First a character is read(consumed) from the Lexer.
+	# Re-defined method. Apply the rule to the given lexer.
+	# First a character is read(consumed) from the lexer.
 	# Second, the action associated with the first handle that accepts the scanned character is executed.
 	# It should return a token in the format requested by the parser.
-	# [aLexer]	A Lexer that should respond to the messages sent
+	# [aLexer]	A lexer that should respond to the messages sent
 	#  by any action...
 	def apply_to(aLexer)
 		apply_action(before_action, aLexer) unless before_action.nil?

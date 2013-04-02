@@ -8,31 +8,31 @@ module RaccLexer # This module is used as a namespace
 
 # Encapsulates the data returned by the Lexer to the parser.
 class Token
-	# The text representation of the token as it appears in the input text
+	# The original text representation of the token as it appears in the input text
 	attr_reader(:lexeme)
 
 	# The 'normalised' value of the token. In many case, it is the same as the lexeme text
 	attr_reader(:value)
 
-	# The position of the token (useful for error reporting)
+	# The position of the token (useful for error reporting) implemented as a TokenPosition object.
 	attr_reader(:position)
 
 
-	# Constructor
-  #[theValue]. See doc of 'value' atribute
-  #[theLexeme]. See doc of 'lexeme' atribute
-  #[aPosition]. See doc of 'position' atribute
+	# Constructor.
+  # [theValue]. See doc of 'value' attribute. 
+  # [theLexeme]. See doc of 'lexeme' attribute.
+  # [aPosition]. See doc of 'position' attribute.
 	def initialize(theValue, theLexeme, aPosition)
 		@value, @lexeme, @position =  theValue, theLexeme, aPosition
 	end
 
 public
 	# Overridden equality operator.
-  # [another] can be:
-  # -a Token. comparison is true when all attributes have the same values.
-	# -a String. => equality when another == self.value
-	# -a Fixnum. => another == self.offset
-	# -an Array. A couple like [value/lexeme, a position array].
+  # [anotherToken] can be:
+  #  -a Token. comparison is true when all attributes have the same values.
+	#  -a String. => equality when another == self.value
+	#  -a Fixnum. => another == self.offset
+	#  -an Array. A couple like [value/lexeme, a position array].
 	def ==(anotherToken)
 		are_equal = case anotherToken
 			when String

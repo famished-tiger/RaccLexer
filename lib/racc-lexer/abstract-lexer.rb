@@ -27,9 +27,9 @@ token_recognized: the scanner recognized a valid token in the input stream.
 
 
 class AbstractLexer
-  include AbstractMethod   # Mixin module to mark some methods as abstract 
+  include AbstractMethod   # Mixin module to mark some methods as abstract
   include EdgeStateMachine # Mixin module to implement state machines
-  
+
 	# Link to the shared low-level scanner (behaves as a StringScanner)
 	attr_reader(:scanner)
 
@@ -52,7 +52,7 @@ class AbstractLexer
 
 	# The position in the input text just after the last encountered newline.
 	attr_reader(:line_offset)
-  
+
   # State machine dedicated to track the current scan position w.r.t. current line of text.
   state_machine :line_positioning do
     # Name of the initial state (optional). If absent, the initial state will be the first state defined.
@@ -89,7 +89,7 @@ class AbstractLexer
 
     # Event: one end of line just found (but not yet consumed)
     event :eol_checked do
-      transition :from => [:at_line_start, :after_indentation, :in_line_body, :at_line_end], :to => :at_line_end 
+      transition :from => [:at_line_start, :after_indentation, :in_line_body, :at_line_end], :to => :at_line_end
     end
 
     # Event: a character for a potential token just detected
@@ -110,18 +110,18 @@ class AbstractLexer
   # State machine dedicated to the recognition of tokens.
   state_machine :token_recognition do
     initial_state :waiting_for_input      # Name of the initial state.
-    
+
     # The lexer waits for an input text.
     state :waiting_for_input
-    
+
     # The lexer is ready to find any token in the input text.
     state :ready do
       enter :clear_lexeme # Entry action
     end
-    
+
     # The lexer tries to match the current lexeme to a token of the language.
     state :tokenizing
-    
+
     state :recognized
 
     # End states
@@ -131,8 +131,8 @@ class AbstractLexer
 
     state :failed # Error state: an unexpected character occurred while Lexer was trying to recognize a lexeme
     state :aborted  # Error state: an unexpected eos occurred while Lexer was trying to recognize a lexeme
-    
-    # Event: the text to scan was just provided    
+
+    # Event: the text to scan was just provided
     event :input_given do
       transition :from => [:waiting_for_input, :done], :to => :ready, :on_transition => :reset
     end
@@ -168,16 +168,16 @@ class AbstractLexer
 
 	# Constructor.
   # Initialize language-specific options.
-	def initialize()    
+	def initialize()
     @significant_indentation = false
     @eol_as_token = false
-		@queue = TokenQueue.new   
+		@queue = TokenQueue.new
   end
 
-public  
+public
   # Set the input text to be subjected to the lexical analysis.
 	# [input_text]	Can be either a String or a StringScanner object.
-  # It is the input to subjected to the lexical analysis.  
+  # It is the input to subjected to the lexical analysis.
   def input=(input_text)
     if input_text.kind_of?(StringScanner)
       @scanner = input_text
@@ -188,7 +188,7 @@ public
         @scanner.string = input_text
       end
     end
-    
+
     input_given() # Trigger a state change with this event
   end
 
@@ -200,19 +200,50 @@ public
 	# token_type is either a Symbol or a character that categorises the token recognized from the input text.
 	def next_token()
     raise LexerSetupError.new("No input text was provided.") if token_recognition_state == :waiting_for_input
-    
+
 		if queue.empty?
       unless token_recognition_state == :ready
         error_message = "#{__method__} may not be called when state is #{token_recognition_state}"
         raise  LexerSetupError.new(error_message)
       end
-      
+
       enqueue_next_tokens() # Retrieve token(s) from the input text & enqueue them
     end
     theToken = queue.dequeue()
 		return theToken
   end
 
+  
+	# Read unconditionally the character at current scanning position.
+	# Position is incremented.
+	# Returns the read character or raise an exception if current position is at eos.
+	def next_char()	
+		ch = @scanner.getch()
+		
+		if ch.nil?
+			eos_detected()	# Emit event
+		else 
+			lexeme << ch
+		end
+		
+		return ch
+	end
+ 
+ 
+	# Return a single character token.
+	# Pre-requisite: lexeme attribute contains the single character.
+	def scan_single_char()
+		result = if metachar?(lexeme)
+			# A Meta-character...
+			enqueue_token(lexeme.dup)
+		else
+			enqueue_token(:T_CHARLIT)
+		end
+		
+		return result
+	end
+
+  
   # The lexer state is implemented as a combination of two state machines.
   # This helper method returns the names of the current state from both state machines.
   # It is thus a couple of the form:
@@ -224,33 +255,33 @@ public
     return [ position_in_line_state, token_recognition_state]
   end
 
-  
+
   # Return the name of the current state of the 'token_recognition' STM.
   def token_recognition_state()
     return current_state_name(:token_recognition)
   end
-  
-  
+
+
 	# Return true iff end of input text is reached
 	def eos?()
 		return @scanner.eos?()
 	end
 
-  
-	# Enqueue the terminating token in the format expected by a RACC-generated parser.  
+
+	# Enqueue the terminating token in the format expected by a RACC-generated parser.
   def enqueue_eos_marker()
 		position = build_position(:eos)
-		eos_marker =  [false, RaccLexer::Token.new('$', '$', position)]  
+		eos_marker =  [false, RaccLexer::Token.new('$', '$', position)]
     queue.enqueue eos_marker
   end
-  
-  
+
+
 	# Build and enqueue a token with given token type
 	# The created token is returned.
 	def enqueue_token(aTokenType)
 		a_token = build_token(aTokenType)
-		queue.unshift a_token
-    
+		queue.enqueue(a_token)
+
 		@token_pos = scanner.pos()	# Update the current position (in case of multiple tokens enqueuing)
 		return a_token
 	end
@@ -258,17 +289,18 @@ public
   # Required by the actions
   def find_rule(aRuleName) abstract_method
   end
-  
+
   def undo_scan()
     raise NotImplementedError
   end
 
-  
+
 protected
   # Initialize the tokenizing state
   def reset()
     @lineno = 1
 		@line_offset = 0
+    @token_pos = 0
   end
 
   # Purpose = Make the lexeme text empty.
@@ -280,7 +312,7 @@ protected
   # Each found token is then enqueued
   def enqueue_next_tokens()
     case current_state_name(:token_recognition)
-      when :ready 
+      when :ready
         if significant_indentation && (current_state_name(:line_positioning) == :at_line_start)
           found_indentation = scanner.scan(indentation_pattern)
           if found_indentation
@@ -298,7 +330,7 @@ protected
             eos_detected()
             break
           end
-          
+
           # Here starts the core tokenizing work...
           # Retrieve the (state-dependent) main/start Lexer rule...
           theRule = find_rule(main_rule_name())
@@ -307,14 +339,14 @@ protected
             # Now apply the rule to the input managed by this Lexer
             theRule.apply_to(self)	# One or more tokens are placed in the queue
 
-            unless tokenizing_state == :Recognized
+            unless current_state_name(:token_recognition) == :recognized
               # Error detected...
-              raise LexerInternalError, "Internal error: Lexer in unexpected state '#{tokenizing_state}'"
+              raise InternalLexerError.new("Internal error: Lexer in unexpected state '#{current_state_name(:token_recognition)}'", nil)
             end
           rescue LexerError => exc
             # Enqueue the "exception" as an error token
             error_token = [:error, exc]
-            queue.unshift error_token
+            queue.enqueue error_token
           end
         end # loop
       else
@@ -326,49 +358,80 @@ protected
 	# [target] must be one of following values: :eos, :lexeme
 	def build_position(target = :lexeme)
 		offset = (target == :lexeme)? @token_pos : scanner.pos()
+    begin
 		linepos = offset - @line_offset # Position relative to start of line
+    rescue NoMethodError => exc
+      STDERR.puts "@token_pos = #{@token_pos}"
+      STDERR.puts "scanner.pos = #{scanner.pos}"
+      STDERR.puts "@line_offset = #{@line_offset}"
+      raise exc
+    end
 		position = LexemePosition.new(offset, @lineno, linepos)
 		return position
-	end  
+	end
 
-  
-	# Abstract method (must be redefined in a subclass). 
-	# Purpose: return the regular experssion for the text to be skipped (ignored) 
+
+	# Abstract method (must be redefined in a subclass).
+	# Purpose: return the regular experssion for the text to be skipped (ignored)
   # such as whitespaces and comments
 	def noise_pattern() abstract_method
 	end
 
 
   # Purpose: return the end of line pattern (as a regular expression).
-  # The pattern defines what a end of line (eol) is.  
+  # The pattern defines what a end of line (eol) is.
   def eol_pattern()
-    return /\r\n?|\n/ # Applicable to *nix, Mac, Windows eol conventions  
-  end 
+    return /\r\n?|\n/ # Applicable to *nix, Mac, Windows eol conventions
+  end
 
-  
+
   # Entry action for done state
   def complete_scan()
     enqueue_eos_marker()
   end
 
-  
+
   # Entry action for at_line_end state.
   # Assumption: eol is at position == scanner.pos()
   def eat_eol()
     if eol_as_token  # if eol is significant in the language...
       position = build_position(:lexeme)
-      eol_lexeme = scanner.scan(eol_pattern) # Consume the eol text    
+      eol_lexeme = scanner.scan(eol_pattern) # Consume the eol text
       eol_token =  [:T_EOL, RaccLexer::Token.new(eol_lexeme, eol_lexeme, position)]
       queue.unshift eol_token
     else
-      scanner.scan(eol_pattern) # Consume the eol text 
+      scanner.scan(eol_pattern) # Consume the eol text
     end
-    
-    @lineno += 1
-    @line_offset = scanner.pos() 
-  end
 
+    @lineno += 1
+    @line_offset = scanner.pos()
+  end
   
+	# Create a token object. RACC requires a token to be a two-elements Array with
+	# the first element being the token type (either a Symbol or a character),
+	# The second element is the lexeme.
+	# Pre-condition: the lexeme attribute contains the complete lexeme (original source text of the token) 
+	# Return nil if the current state is :Aborted or :Failed
+	def build_token(aTokenType)
+		if [:Aborted, :Failed].include? @tokenizing_state
+			result = nil
+		else
+			@tokenizing_state = :Recognized
+			if (aTokenType == :EOS) 
+				result = eos_marker()
+			else
+				# TODO: change from couple to triples (token type, value, lexeme). Ultimately add token position as well.
+				token_pos = build_position()
+				result = [aTokenType,  Token.new(lexeme.dup, lexeme.dup, token_pos)]
+			end
+			
+			lexeme.clear
+		end
+		
+		return result
+	end
+
+
 ########################################
 # Unvalidated methods
 ########################################

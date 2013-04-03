@@ -10,9 +10,17 @@ describe AbstractLexer do
   SampleText = 'sample text'
 
   context 'Creation and initialization' do
-    it 'should be created without an argument' do
+    it 'could be created without an argument' do
       lambda { AbstractLexer.new() }.should_not raise_error
     end
+    
+    it 'could be created with a String argument' do
+      lambda { AbstractLexer.new(SampleText) }.should_not raise_error
+    end
+
+    it 'could be created with a StringScanner argument' do
+      lambda { AbstractLexer.new(StringScanner.new(SampleText)) }.should_not raise_error
+    end    
    
     it 'should be in the proper initial state' do
       position_in_line_state, token_recognition_state = subject.complete_state_name()

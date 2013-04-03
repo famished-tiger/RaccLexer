@@ -168,10 +168,12 @@ class AbstractLexer
 
 	# Constructor.
   # Initialize language-specific options.
-	def initialize()
+  # [input_text] Optional argument. When present must be a String or a StringScanner.
+	def initialize(input_text = nil)
     @significant_indentation = false
     @eol_as_token = false
 		@queue = TokenQueue.new
+    self.input = input_text unless input_text.nil?
   end
 
 public

@@ -132,7 +132,7 @@ end # class
 
 
 # Specialised tokenizing action that moves the scanning position back by the length of the lexeme.
-# The lexeme is cleared. In other words, the it works as if the lexeme in the input text wasn't yet scanned.
+# The lexeme is cleared. In other words, it works as if the lexeme in the input text wasn't yet scanned.
 class UndoScan < LexerAction
 	
 public
@@ -141,7 +141,7 @@ public
 	#-- aLexer has the method 'unscan' that returns the set of Lexer rules.
   # TODO: check return value
 	def apply_to(aLexer)
-		return aLexer.unscan()
+		return aLexer.undo_scan()
 	end
 	
 end # class

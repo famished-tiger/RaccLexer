@@ -29,6 +29,13 @@ class LexemePosition
 		@offset, @lineno  = anOffset, aLineNumber  
     @line_pos = valid_line_offset(aPositionInLine)  
 	end
+  
+  
+  # Factory method. Constructs a position object that designates the
+  # start of the input text.
+  def self.at_start()
+    return self.new(0, 1, 0)
+  end
 
 public
 	# Value semantic implementation: overridden equality operator.

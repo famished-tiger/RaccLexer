@@ -22,6 +22,10 @@ describe LexemePosition do
       error_message = "Internal error: invalid value for position relative to start of in line"
        lambda { LexemePosition.new(10, 1, 15) }.should raise_error(InternalLexerError, error_message)
     end
+    
+    it 'could be set at start of input text' do
+      lambda { LexemePosition.at_start() }.should_not raise_error
+    end
 
     it 'should know its offset' do
       subject.offset.should == 10

@@ -169,6 +169,7 @@ class AbstractLexer
 	# Constructor.
   # Initialize language-specific options.
   # [input_text] Optional argument. When present must be a String or a StringScanner.
+  #   It is the input to be subjected to lexical analysis.
 	def initialize(input_text = nil)
     @significant_indentation = false
     @eol_as_token = false
@@ -201,7 +202,7 @@ public
 	# [token_type, a Token object]
 	# token_type is either a Symbol or a character that categorises the token recognized from the input text.
 	def next_token()
-    raise LexerSetupError.new("No input text was provided.") if token_recognition_state == :waiting_for_input
+    raise LexicalError.new("No input text was provided.", LexemePosition::at_start) if token_recognition_state == :waiting_for_input
 
 		if queue.empty?
       unless token_recognition_state == :ready
@@ -291,9 +292,30 @@ public
   # Required by the actions
   def find_rule(aRuleName) abstract_method
   end
+  
+	# Tries to match the text at the current position to the pattern.
+	# If there’s a match, the scanner advances the “scan pointer” and returns the matched string.
+  # The lexeme attributre is updated as well.
+  # TODO: ensure that the implementation complies to the state-machine.  
+	# Otherwise, the scanner returns nil.
+	def scan(aPattern)
+		result = @scanner.scan(aPattern)
+		lexeme << result unless result.nil?
+		
+		return result
+	end
 
+  # Tell the lower-level scanner to move the current scanning position
+  # by the amount of characters in lexeme.
+  # TODO: ensure that the implementation complies to the state-machine.
   def undo_scan()
-    raise NotImplementedError
+		currPos = scanner.pos() # Retrieve the current scanning position of lower-level scanner.
+		delta = lexeme.length
+		#reset()	# Side-effect: lexeme is zapped
+    clear_lexeme()    
+		scanner.reset()	# Force the scanner to be a position zero AND clear matching data.
+		scanner.pos= currPos - delta
+		@token_pos = scanner.pos
   end
 
 
@@ -351,7 +373,7 @@ protected
             queue.enqueue error_token
           end
         end # loop
-      else
+      else # Other state ...
         raise LexerSetupError, "Unimplemented handler"
     end
   end

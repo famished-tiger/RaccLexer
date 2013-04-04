@@ -198,7 +198,7 @@ describe UndoScan do
 			fake = mock('fake')
 
 			# The Lexer is expected receive the unscan message
-			fake.should_receive(:unscan)
+			fake.should_receive(:undo_scan)
 
 			# Create action object
 			subject.apply_to(fake)

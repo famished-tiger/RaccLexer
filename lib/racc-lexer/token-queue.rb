@@ -45,8 +45,8 @@ public
     return tokens.empty?
   end
 
-  # Given the token pair passed as argument, enqueue it after subjecting it to a transformation
-  # rule (if any).
+  # Given the token pair passed as argument, enqueue it after subjecting it
+  # to a transformation rule (if any).
   # [aTokenCouple] a couple of the form:
   #   [[token type, a Token object]]
   def enqueue(aTokenCouple)

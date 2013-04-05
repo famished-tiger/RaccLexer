@@ -338,11 +338,7 @@ protected
     case current_state_name(:token_recognition)
       when :ready
         if significant_indentation && (current_state_name(:line_positioning) == :at_line_start)
-          found_indentation = scanner.scan(indentation_pattern)
-          if found_indentation
-            self.lexeme = found_indentation
-            indentation_scanned()
-          end
+          scan_indentation()
         end
         loop do
           scanner.skip(noise_pattern)
@@ -412,6 +408,25 @@ protected
   # Entry action for done state
   def complete_scan()
     enqueue_eos_marker()
+  end
+  
+  # Retrive the pattern for line indentation
+  def indentation_pattern()
+    return /^(?: \t)+/
+  end
+  
+  
+  # Scan the indentation (if any)
+  # If some indentation was found, then it is gobbled and put in the lexeme attrbute.
+  # The event indentation_scanned is emitted.
+  # Pre-condition/assumption: state of line_positioning == at_line_start
+  # Post-condition: state == :after_indentation (if indentation was found), otherwise :at_line_start
+  def scan_indentation()
+    found_indentation = scanner.scan(indentation_pattern)
+    if found_indentation
+      self.lexeme = found_indentation
+      indentation_scanned()
+    end
   end
 
 

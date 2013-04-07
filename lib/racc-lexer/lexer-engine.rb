@@ -5,7 +5,10 @@ require 'strscan'	# Use StringScanner for low-level scanning
 # The state transition machine (STM) implementation relies
 # on the gem edge-state-machine.
 # https://github.com/danpersa/edge-state-machine
-require "edge-state-machine"  
+require "edge-state-machine"
+
+require_relative 'lexer-exceptions'
+require_relative 'lexeme-position'
 
 module RaccLexer	# This module is used as a namespace
 
@@ -14,7 +17,7 @@ Coarse-grained state transition machines for a generic lexer.
 Two state machines are managed conjointly:
   - line_positioning
   - token_recognition
-  
+
 The line_positioning STM is tracking the current scan position w.r.t. current line of text
 (i.e. at the start, at end, in the middle of the current line of text). It also takes into account
 indentation.
@@ -22,7 +25,7 @@ indentation.
 The token_recognition STM is dedicated to the recognition of tokens.
 
 List of events recognized by the STM:
-(these events are notifications of happenings that might potentially change 
+(these events are notifications of happenings that might potentially change
   the scan position and are related to the text being currently scanned).
 eol_checked: the scanner found an end-of-line in the input stream. Position at eol. The eol is not in lexeme.
 not_eol_checked: the scanner found any char that is NOT part of end-of-line in the input stream.
@@ -34,22 +37,22 @@ unexpected_char_checked: the scanner detected an unexpected character (i.e. a ch
 token_recognized: the scanner recognized a valid token in the input stream.
 =end
 class LexerEngine
-  include EdgeStateMachine # Mixin module to implement state machines 
-  
+  include EdgeStateMachine # Mixin module to implement state machines
+
 	# Link to the shared low-level scanner (behaves as a StringScanner)
   # These are the methods in use: getch, eos?, pos, scan, reset, skip, check
 	attr_reader(:scanner)
 
 	# Lexeme being recognized. A lexeme is an extract from the input text that is a recognized as a token of the language.
-	attr_reader(:lexeme)  
-  
+	attr_reader(:lexeme)
+
   # The current line number in the input text
 	attr_reader(:lineno)
 
 	# The position in the input text just after the last encountered newline.
 	attr_reader(:line_offset)
-  
-  
+
+
   #######################
   # State machine tracking the current scan position w.r.t. current line of text.
   #######################
@@ -101,9 +104,9 @@ class LexerEngine
 
 
   end # state_machine
-  
-  
-  
+
+
+
   #######################
   # State machine dedicated to the recognition of tokens.
   #######################
@@ -163,7 +166,7 @@ class LexerEngine
        transition :from => :recognized, :to => :ready
     end
 
-  end # state_machine  
+  end # state_machine
 
 public
   # Set the input text to be subjected to the lexical analysis.
@@ -179,7 +182,7 @@ public
         @scanner.string = input_text
       end
     end
-    
+
     self.input_given # Trigger an event for one state machine
   end
 
@@ -199,35 +202,54 @@ public
   def token_recognition_state()
     return current_state_name(:token_recognition)
   end
-  
+
   # Check whether the token recognition state reached an end state
   def end_state_scanning()
     end_states = [:done, :aborted, :failed]
     return end_states.include? token_recognition_state
   end
-  
+
   # Purpose = Make the lexeme text empty.
 	def clear_lexeme()
 		@lexeme = ''
 	end
   
+  def eol_pattern()
+    return /\r?\n/
+  end
   
+  # Pre-condition: eol is at current scanning position.
+  def eat_eol()
+    lexeme = scanner.matched()     # Copy eol into the lexeme attribute
+    scanner.pos = scanner.pos + lexeme.length
+    @lineno += 1
+  end
+
+
 	# Tries to match the text at the current position to the pattern.
 	# If there’s a match, the scanner advances the “scan pointer”, updates the 'lexeme' attribute.
-  # Returns a couple of the form:
-  #   - [false, '$'] eos marker
-  #   - [:eol, eol lexeme]
+  # Returns a Symbol or nil
+  #   - :eos end of input text stream
+  #   - :eol end of line
+  #   - :indentation blank at start of text line
+  #   - :token the current lexeme matched the the given pattern
+  #   - nil the pattern did not match the text at the scanning position.
 	# Otherwise, the scanner returns nil.
 	def scan(aPattern)
-    raise StandardError if end_state_scanning()
+    raise LexicalError.new("No input text was provided.", LexemePosition::at_start) if end_state_scanning()
     if eos?
       eos_detected
-      result = [false, '$']
+      result = :eos
     else
+      found_eol = scanner.check(eol_pattern)
+      if found_eol
+        eol_checked() # Trigger an event
+        return :eol
+      end
       result = scanner.scan(aPattern) # Incomplete ... update line positioning as well
       lexeme << result unless result.nil?
     end
-		
+
 		return result
 	end
 
@@ -238,24 +260,24 @@ public
 		currPos = scanner.pos() # Retrieve the current scanning position of lower-level scanner.
 		delta = lexeme.length
 		#reset()	# Side-effect: lexeme is zapped
-    clear_lexeme()    
+    clear_lexeme()
 		scanner.reset()	# Force the scanner to be a position zero AND clear matching data.
 		scanner.pos= currPos - delta
 		@token_pos = scanner.pos
-  end  
+  end
 
 	# Read unconditionally the character at current scanning position.
 	# Position is incremented.
 	# Returns the read character or raise an exception if current position is at eos.
-	def next_char()	
+	def next_char()
 		ch = scanner.getch()
-		
+
 		if ch.nil?
 			eos_detected()	# Emit event
-		else 
+		else
 			lexeme << ch
 		end
-		
+
 		return ch
 	end
 
@@ -264,9 +286,9 @@ public
 	def eos?()
     scanning_state = token_recognition_state()
     return true if  (scanning_state == :done) || (scanning_state == :aborted)
-    
+
     return scanner.eos?()
-	end  
+	end
 
 protected
   # Initialize the tokenizing state
@@ -274,8 +296,8 @@ protected
     @lineno = 1
 		@line_offset = 0
     @token_pos = 0
-  end  
-  
+  end
+
 end # class
 
 end # module

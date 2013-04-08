@@ -156,10 +156,13 @@ class LexerEngine
       transition :from => :tokenizing, :to => :failed
     end
 
+
     # Event: current lexeme matches a token.
     event :token_recognized do
+      transition :from => :ready, :to => :recognized
       transition :from => :tokenizing, :to => :recognized
     end
+
 
     # Event: a token object was just pushed on the queue
     event :token_enqueued do
@@ -213,15 +216,19 @@ public
 	def clear_lexeme()
 		@lexeme = ''
 	end
-  
+
   def eol_pattern()
     return /\r?\n/
   end
-  
+
+  # Make it state-dependent
+  def noise_pattern()
+    return /#.*/  # Comment pattern
+  end
+
   # Pre-condition: eol is at current scanning position.
   def eat_eol()
-    lexeme = scanner.matched()     # Copy eol into the lexeme attribute
-    scanner.pos = scanner.pos + lexeme.length
+    @lexeme = scanner.scan(eol_pattern)     # Copy eol into the lexeme attribute
     @lineno += 1
   end
 
@@ -237,9 +244,12 @@ public
 	# Otherwise, the scanner returns nil.
 	def scan(aPattern)
     raise LexicalError.new("No input text was provided.", LexemePosition::at_start) if end_state_scanning()
+    
+    token_enqueued if token_recognition_state == :recognized
+    scanner.scan(noise_pattern)
     if eos?
       eos_detected
-      result = :eos
+      return :eos
     else
       found_eol = scanner.check(eol_pattern)
       if found_eol
@@ -247,10 +257,15 @@ public
         return :eol
       end
       result = scanner.scan(aPattern) # Incomplete ... update line positioning as well
-      lexeme << result unless result.nil?
+      unless result.nil?
+        lexeme << result
+        expected_char_checked_stm_line() # STM event
+        token_recognized() # STM event
+        return :token
+      end
     end
 
-		return result
+		return nil
 	end
 
   # Tell the lower-level scanner to move the current scanning position

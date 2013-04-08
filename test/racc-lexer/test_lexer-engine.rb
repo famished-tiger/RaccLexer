@@ -50,7 +50,7 @@ class TestLexerEngine < MiniTest::Unit::TestCase
     # No token position determined yet...
     assert_nil @subject.lineno
     assert_nil @subject.line_offset
-    
+
     # No lexeme found yet...
     assert_nil @subject.lexeme
   end
@@ -69,7 +69,7 @@ class TestLexerEngine < MiniTest::Unit::TestCase
     # Position is set to begin
     assert @subject.lineno == 1
     assert @subject.line_offset == 0
-    
+
     # attribute lexeme initialized to empty string
     assert_empty @subject.lexeme
   end
@@ -164,7 +164,7 @@ end # class
 =end
 
 
-describe "TC1: Analyzing an empty line" do
+describe "TC1: |eos| Analyzing an empty input" do
   subject do
     lexer = RaccLexer::LexerEngine.new
     lexer.input = ''
@@ -174,38 +174,125 @@ describe "TC1: Analyzing an empty line" do
   it 'should detect empty input text' do
     assert subject.eos?
   end
-  
+
   it 'should return the eos marker after scanning once' do
     actual_token = subject.scan(/.+/)
-    assert actual_token == :eos
-    
-    # Must be in end state
+    actual_token.must_equal :eos
+
+    # Must be in end of stream state
     subject.must_be_in_state([:at_line_start, :done])
   end
-  
+
   it 'should complain when trying to scan after eos detection' do
     subject.scan(/.+/)  # eos is returned here...
-    
-    # Scanning AFTER the eos marker is already returned raises an exception 
+
+    # Scanning AFTER the eos marker was already returned generates an exception
     lambda { subject.scan(/.+/) }.must_raise RaccLexer::LexicalError
   end
 end # describe
 
 
-describe "TC2: Analyzing an eol" do
+describe "TC2: |eol|" do
   subject do
     lexer = RaccLexer::LexerEngine.new
     lexer.input = "\n"
     lexer
   end
-  
+
   it 'should return the eol token after scanning once' do
     actual_token = subject.scan(/.+/)
-    pp actual_token.class
-    assert actual_token == :eol
+    actual_token.must_equal :eol
+    
+    subject.lexeme.must_match /\r?\n/
+
+    # Must ready for another token
+    subject.must_be_in_state([:at_line_end, :ready])
   end
   
+  it 'should complain when trying to scan after eol detection' do
+    actual_token = subject.scan(/.+/)
+    actual_token.must_equal :eol
+
+    # AFTER the eol, we expect an eos
+    second_token = subject.scan(/.+/)
+    second_token.must_equal :eos 
+  end  
+
 end #describe
 
+describe "TC3: |noise|eos|" do
+  subject do
+    lexer = RaccLexer::LexerEngine.new
+    lexer.input = "# Some comment"
+    lexer
+  end
+  
+  it 'should return the eos marker after scanning once' do
+    actual_token = subject.scan(/.+/)
+    actual_token.must_equal :eos
+
+    # Must be in end of stream state
+    subject.must_be_in_state([:at_line_start, :done])
+  end
+end #describe
+
+
+describe "TC4: |noise|eol|" do
+  subject do
+    lexer = RaccLexer::LexerEngine.new
+    lexer.input = "# Some comment\n"
+    lexer
+  end
+
+  it 'should return the eol token after scanning once' do
+    actual_token = subject.scan(/.+/)
+    actual_token.must_equal :eol
+    
+    subject.lexeme.must_match /\r?\n/
+
+    # Must ready for another token
+    subject.must_be_in_state([:at_line_end, :ready])
+  end
+  
+  it 'should return eos after eol detection' do
+    actual_token = subject.scan(/.+/)
+    actual_token.must_equal :eol
+
+    # AFTER the eol, we expect an eos
+    second_token = subject.scan(/.+/)
+    second_token.must_equal :eos
+  end  
+end # describe
+
+
+
+
+describe "TC5: |token|eos|" do
+  subject do
+    lexer = RaccLexer::LexerEngine.new
+    lexer.input = "12345"
+    lexer
+  end
+
+  it 'should return the integer token after scanning once' do
+    actual_token = subject.scan(/.+/)
+    actual_token.must_equal :token
+    
+    subject.lexeme.must_equal "12345"
+
+    # Must be ready for next token...
+    subject.must_be_in_state([:in_line_body, :recognized])
+  end
+  
+  it 'should return eos after token detection' do
+    actual_token = subject.scan(/.+/)
+    actual_token.must_equal :token
+
+    # AFTER the token, we expect an eos
+    second_token = subject.scan(/.+/)
+    second_token.must_equal :eos 
+  end  
+
+end #describe
 
 # End of file

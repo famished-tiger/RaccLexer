@@ -6,9 +6,6 @@ require 'minitest/autorun'
 
 require_relative '../../lib/racc-lexer/lexer-engine'  # The class under testing
 
-
-
-
 # Custom MiniTest assertion
 module MiniTest::Assertions
 
@@ -30,8 +27,8 @@ module MiniTest::Expectations
 end # module
 
 
-class TestLexerEngine < MiniTest::Unit::TestCase
 
+class TestLexerEngine < MiniTest::Unit::TestCase
 
   # Test setup
   def setup()
@@ -164,7 +161,7 @@ end # class
 =end
 
 
-describe "TC1: |eos| Analyzing an empty input" do
+describe "TC1: |eos|" do
   subject do
     lexer = RaccLexer::LexerEngine.new
     lexer.input = ''
@@ -202,21 +199,21 @@ describe "TC2: |eol|" do
   it 'should return the eol token after scanning once' do
     actual_token = subject.scan(/.+/)
     actual_token.must_equal :eol
-    
+
     subject.lexeme.must_match /\r?\n/
 
     # Must ready for another token
     subject.must_be_in_state([:at_line_end, :ready])
   end
-  
+
   it 'should complain when trying to scan after eol detection' do
     actual_token = subject.scan(/.+/)
     actual_token.must_equal :eol
 
     # AFTER the eol, we expect an eos
     second_token = subject.scan(/.+/)
-    second_token.must_equal :eos 
-  end  
+    second_token.must_equal :eos
+  end
 
 end #describe
 
@@ -226,7 +223,7 @@ describe "TC3: |noise|eos|" do
     lexer.input = "# Some comment"
     lexer
   end
-  
+
   it 'should return the eos marker after scanning once' do
     actual_token = subject.scan(/.+/)
     actual_token.must_equal :eos
@@ -247,13 +244,13 @@ describe "TC4: |noise|eol|" do
   it 'should return the eol token after scanning once' do
     actual_token = subject.scan(/.+/)
     actual_token.must_equal :eol
-    
+
     subject.lexeme.must_match /\r?\n/
 
     # Must ready for another token
     subject.must_be_in_state([:at_line_end, :ready])
   end
-  
+
   it 'should return eos after eol detection' do
     actual_token = subject.scan(/.+/)
     actual_token.must_equal :eol
@@ -261,37 +258,81 @@ describe "TC4: |noise|eol|" do
     # AFTER the eol, we expect an eos
     second_token = subject.scan(/.+/)
     second_token.must_equal :eos
-  end  
+  end
 end # describe
 
 
 
-
-describe "TC5: |token|eos|" do
-  subject do
-    lexer = RaccLexer::LexerEngine.new
-    lexer.input = "12345"
-    lexer
+describe "TC5: |token|eos|, TC7: |noise|token|eos|" do
+  before do
+    @sample_inputs = ["12345",  # TC5: |token|eos|
+      "/* A comment */12345"    # TC7: |noise|token|eos|
+    ]
   end
 
   it 'should return the integer token after scanning once' do
-    actual_token = subject.scan(/.+/)
-    actual_token.must_equal :token
-    
-    subject.lexeme.must_equal "12345"
+    @sample_inputs.each do |sample|
+      instance = RaccLexer::LexerEngine.new
+      instance.input = sample
+      actual_token = instance.scan(/.+/)  # Read any token
+      actual_token.must_equal :token
 
-    # Must be ready for next token...
-    subject.must_be_in_state([:in_line_body, :recognized])
+      instance.lexeme.must_equal "12345"
+
+      # Must be ready for next token...
+      instance.must_be_in_state([:in_line_body, :recognized])
+    end
   end
-  
-  it 'should return eos after token detection' do
-    actual_token = subject.scan(/.+/)
-    actual_token.must_equal :token
 
-    # AFTER the token, we expect an eos
-    second_token = subject.scan(/.+/)
-    second_token.must_equal :eos 
-  end  
+  it 'should return eos after token detection' do
+    @sample_inputs.each do |sample|
+      instance = RaccLexer::LexerEngine.new
+      instance.input = sample
+      actual_token = instance.scan(/.+/)
+      actual_token.must_equal :token
+
+      # AFTER the token, we expect an eos
+      second_token = instance.scan(/.+/)
+      second_token.must_equal :eos
+    end
+  end
+
+end #describe
+
+
+describe "TC6: |token|eol|, TC8: |noise|token|eol|" do
+  before do
+    @sample_inputs = ["12345\n",  # TC6: |token|eol|
+      "/* A comment */12345\n"    # TC7: |noise|token|eol|
+    ]
+  end
+
+  it 'should return the integer token after scanning once' do
+    @sample_inputs.each do |sample|
+      instance = RaccLexer::LexerEngine.new
+      instance.input = sample
+      actual_token = instance.scan(/.+/)  # Read any token
+      actual_token.must_equal :token
+
+      instance.lexeme.must_equal "12345"
+
+      # Must be ready for next token...
+      instance.must_be_in_state([:in_line_body, :recognized])
+    end
+  end
+
+  it 'should return eol after token detection' do
+    @sample_inputs.each do |sample|
+      instance = RaccLexer::LexerEngine.new
+      instance.input = sample
+      actual_token = instance.scan(/.+/)
+      actual_token.must_equal :token
+
+      # AFTER the token, we expect an eol
+      second_token = instance.scan(/.+/)
+      second_token.must_equal :eol
+    end
+  end
 
 end #describe
 

@@ -223,7 +223,7 @@ public
 
   # Make it state-dependent
   def noise_pattern()
-    return /#.*/  # Comment pattern
+    return /#.*|\/\*.*?\*\//  # Two comment styles: C comments /* comment */, Ruby line comments # Comment...
   end
 
   # Pre-condition: eol is at current scanning position.
@@ -244,7 +244,7 @@ public
 	# Otherwise, the scanner returns nil.
 	def scan(aPattern)
     raise LexicalError.new("No input text was provided.", LexemePosition::at_start) if end_state_scanning()
-    
+
     token_enqueued if token_recognition_state == :recognized
     scanner.scan(noise_pattern)
     if eos?

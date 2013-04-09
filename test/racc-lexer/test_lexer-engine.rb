@@ -263,10 +263,12 @@ end # describe
 
 
 
-describe "TC5: |token|eos|, TC7: |noise|token|eos|" do
+describe "TC5: |token|eos|, TC7: |noise|token|eos|, TC9: |token|noise|eos|, TC13: |noise|token|noise|eos|" do
   before do
     @sample_inputs = ["12345",  # TC5: |token|eos|
-      "/* A comment */12345"    # TC7: |noise|token|eos|
+      "/* A comment */12345",   # TC7: |noise|token|eos|
+      "12345/* A comment */",   # TC9: |token|noise|eos|
+      "/* comment1*/12345# comment2"   # TC13:|noise|token|noise|eos|
     ]
   end
 
@@ -274,7 +276,7 @@ describe "TC5: |token|eos|, TC7: |noise|token|eos|" do
     @sample_inputs.each do |sample|
       instance = RaccLexer::LexerEngine.new
       instance.input = sample
-      actual_token = instance.scan(/.+/)  # Read any token
+      actual_token = instance.scan(/\d+/)  # Read any ordinal literal
       actual_token.must_equal :token
 
       instance.lexeme.must_equal "12345"
@@ -288,7 +290,7 @@ describe "TC5: |token|eos|, TC7: |noise|token|eos|" do
     @sample_inputs.each do |sample|
       instance = RaccLexer::LexerEngine.new
       instance.input = sample
-      actual_token = instance.scan(/.+/)
+      actual_token = instance.scan(/\d+/)
       actual_token.must_equal :token
 
       # AFTER the token, we expect an eos
@@ -300,10 +302,11 @@ describe "TC5: |token|eos|, TC7: |noise|token|eos|" do
 end #describe
 
 
-describe "TC6: |token|eol|, TC8: |noise|token|eol|" do
+describe "TC6: |token|eol|, TC8: |noise|token|eol|, TC10: |token|noise|eol|" do
   before do
     @sample_inputs = ["12345\n",  # TC6: |token|eol|
-      "/* A comment */12345\n"    # TC7: |noise|token|eol|
+      "/* A comment */12345\n",    # TC8: |noise|token|eol|
+      "12345/* A comment */\n"
     ]
   end
 
@@ -311,7 +314,7 @@ describe "TC6: |token|eol|, TC8: |noise|token|eol|" do
     @sample_inputs.each do |sample|
       instance = RaccLexer::LexerEngine.new
       instance.input = sample
-      actual_token = instance.scan(/.+/)  # Read any token
+      actual_token = instance.scan(/\d+/)  # Read any ordinal literal
       actual_token.must_equal :token
 
       instance.lexeme.must_equal "12345"
@@ -325,12 +328,100 @@ describe "TC6: |token|eol|, TC8: |noise|token|eol|" do
     @sample_inputs.each do |sample|
       instance = RaccLexer::LexerEngine.new
       instance.input = sample
-      actual_token = instance.scan(/.+/)
+      actual_token = instance.scan(/\d+/)
       actual_token.must_equal :token
 
       # AFTER the token, we expect an eol
       second_token = instance.scan(/.+/)
       second_token.must_equal :eol
+    end
+  end
+
+end #describe
+
+
+
+describe "TC 11:|token|token|eos|" do
+  before do
+    @sample_inputs = ["12345*",  # TC 11:|token|token|eos|
+    ]
+    @token_pattern = /\d+|[-+*\/]/  # Read ordinal literal or arith. operator
+    @expected_lexemes = ["12345", "*"]
+  end
+
+  it 'should return the two tokens' do 
+    @sample_inputs.each do |sample|
+      instance = RaccLexer::LexerEngine.new
+      instance.input = sample
+      @expected_lexemes.each do |expected|
+        actual_token = instance.scan(@token_pattern) 
+        actual_token.must_equal :token
+
+        instance.lexeme.must_equal expected
+
+        # Must be ready for next token...
+        instance.must_be_in_state([:in_line_body, :recognized])
+      end
+    end
+  end
+
+  it 'should return eos after the two detected tokens' do
+    @sample_inputs.each do |sample|
+      instance = RaccLexer::LexerEngine.new
+      instance.input = sample
+      2.times do
+        actual_token = instance.scan(@token_pattern)
+        actual_token.must_equal :token
+      end
+
+      # AFTER the token, we expect an eos
+      second_token = instance.scan(/.+/)
+      second_token.must_equal :eos
+      instance.must_be_in_state([:in_line_body, :done])
+    end
+  end
+
+end #describe
+
+
+
+describe "TC 12:|token|token|eol|" do
+  before do
+    @sample_inputs = ["12345*\n",  # TC 11:|token|token|eos|
+    ]
+    @token_pattern = /\d+|[-+*\/]/  # Read ordinal literal or arith. operator
+    @expected_lexemes = ["12345", "*"]
+  end
+
+  it 'should return the two tokens' do 
+    @sample_inputs.each do |sample|
+      instance = RaccLexer::LexerEngine.new
+      instance.input = sample
+      @expected_lexemes.each do |expected|
+        actual_token = instance.scan(@token_pattern) 
+        actual_token.must_equal :token
+
+        instance.lexeme.must_equal expected
+
+        # Must be ready for next token...
+        instance.must_be_in_state([:in_line_body, :recognized])
+      end
+    end
+  end
+
+  it 'should return eol after the two detected tokens' do
+    @sample_inputs.each do |sample|
+      instance = RaccLexer::LexerEngine.new
+      instance.input = sample
+      2.times do
+        actual_token = instance.scan(@token_pattern)
+        actual_token.must_equal :token
+      end
+
+      # AFTER the token, we expect an eos
+      second_token = instance.scan(/.+/)
+      second_token.must_equal :eol
+      instance.must_be_in_state([:at_line_end, :ready])
     end
   end
 

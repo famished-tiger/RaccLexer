@@ -302,11 +302,12 @@ describe "TC5: |token|eos|, TC7: |noise|token|eos|, TC9: |token|noise|eos|, TC13
 end #describe
 
 
-describe "TC6: |token|eol|, TC8: |noise|token|eol|, TC10: |token|noise|eol|" do
+describe "TC6: |token|eol|, TC8: |noise|token|eol|, TC10: |token|noise|eol|, TC14: |noise|token|noise|eol|" do
   before do
     @sample_inputs = ["12345\n",  # TC6: |token|eol|
-      "/* A comment */12345\n",    # TC8: |noise|token|eol|
-      "12345/* A comment */\n"
+      "/* A comment */12345\n",   # TC8: |noise|token|eol|
+      "12345/* A comment */\n",   # TC10: |token|noise|eol|
+      "/*comment1*/12345/*comment2*/\n" # TC14: |noise|token|noise|eol|
     ]
   end
 
@@ -341,9 +342,10 @@ end #describe
 
 
 
-describe "TC 11:|token|token|eos|" do
+describe "TC11:|token|token|eos|, TC15: |noise|token|token|eos|" do
   before do
-    @sample_inputs = ["12345*",  # TC 11:|token|token|eos|
+    @sample_inputs = ["12345*",  # TC11:|token|token|eos|
+      "/*comment*/12345*"        # TC15: |noise|token|token|eos|
     ]
     @token_pattern = /\d+|[-+*\/]/  # Read ordinal literal or arith. operator
     @expected_lexemes = ["12345", "*"]
@@ -385,9 +387,10 @@ end #describe
 
 
 
-describe "TC 12:|token|token|eol|" do
+describe "TC 12:|token|token|eol|, TC16:|noise|token|token|eol|" do
   before do
-    @sample_inputs = ["12345*\n",  # TC 11:|token|token|eos|
+    @sample_inputs = ["12345*\n",  # TC12:|token|token|eol|
+      "/*comment*/12345*\n"        # TC16:|noise|token|token|eol|
     ]
     @token_pattern = /\d+|[-+*\/]/  # Read ordinal literal or arith. operator
     @expected_lexemes = ["12345", "*"]

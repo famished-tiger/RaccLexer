@@ -263,7 +263,7 @@ end # describe
 
 
 
-describe "TC5: |token|eos|, TC7: |noise|token|eos|, TC9: |token|noise|eos|, TC13: |noise|token|noise|eos|" do
+describe "Test cases: TC5, TC7, TC9, TC13" do
   before do
     @sample_inputs = ["12345",  # TC5: |token|eos|
       "/* A comment */12345",   # TC7: |noise|token|eos|
@@ -302,7 +302,7 @@ describe "TC5: |token|eos|, TC7: |noise|token|eos|, TC9: |token|noise|eos|, TC13
 end #describe
 
 
-describe "TC6: |token|eol|, TC8: |noise|token|eol|, TC10: |token|noise|eol|, TC14: |noise|token|noise|eol|" do
+describe "TC6, TC8, TC10, TC14" do
   before do
     @sample_inputs = ["12345\n",  # TC6: |token|eol|
       "/* A comment */12345\n",   # TC8: |noise|token|eol|
@@ -342,13 +342,19 @@ end #describe
 
 
 
-describe "TC11:|token|token|eos|, TC15: |noise|token|token|eos|" do
+
+describe "Test cases: TC11, TC15, TC17, TC19, TC21, TC23, TC25" do
   before do
-    @sample_inputs = ["12345*",  # TC11:|token|token|eos|
-      "/*comment*/12345*"        # TC15: |noise|token|token|eos|
+    @sample_inputs = ["12345*",   # TC11: |token|token|eos|
+      "/*comment*/12345*",        # TC15: |noise|token|token|eos|
+      "12345/*comment*/*",        # TC17: |token|noise|token|eos|  
+      "12345*/*comment*/",        # TC19: |token|token|noise|eos|
+      "/*comment1*/12345/*comment2*/*",   # TC21: |noise|token|noise|token|eos|
+      "/*comment1*/12345*/*comment2*/",   # TC23: |noise|token|token|noise|eos| 
+      "12345/*comment1*/*/*comment2*/"    # TC25: |token|noise|token|noise|eos|       
     ]
     @token_pattern = /\d+|[-+*\/]/  # Read ordinal literal or arith. operator
-    @expected_lexemes = ["12345", "*"]
+    @expected_lexemes = %w[12345 *]
   end
 
   it 'should return the two tokens' do 
@@ -387,13 +393,18 @@ end #describe
 
 
 
-describe "TC 12:|token|token|eol|, TC16:|noise|token|token|eol|" do
+describe "Test cases: TC12, TC16, TC18, TC20, TC22, TC24, TC26" do
   before do
-    @sample_inputs = ["12345*\n",  # TC12:|token|token|eol|
-      "/*comment*/12345*\n"        # TC16:|noise|token|token|eol|
+    @sample_inputs = ["12345*\n",  # TC12: |token|token|eol|
+      "/*comment*/12345*\n",       # TC16: |noise|token|token|eol|
+      "12345/*comment*/*\n",        # TC18: |token|noise|token|eol|
+      "12345*/*comment*/\n",        # TC20: |token|token|noise|eol|
+      "/*comment1*/12345/*comment2*/*\n",        # TC22: |noise|token|noise|token|eol|
+      "/*comment1*/12345*/*comment2*/\n",        # TC24: |noise|token|token|noise|eol|
+      "12345/*comment1*/*/*comment2*/\n"         # TC26: |token|noise|token|noise|eol|      
     ]
     @token_pattern = /\d+|[-+*\/]/  # Read ordinal literal or arith. operator
-    @expected_lexemes = ["12345", "*"]
+    @expected_lexemes = %w[12345 *]
   end
 
   it 'should return the two tokens' do 
@@ -429,5 +440,45 @@ describe "TC 12:|token|token|eol|, TC16:|noise|token|token|eol|" do
   end
 
 end #describe
+
+
+
+=begin
+describe "Test cases: TC27" do
+  before do
+    @indentation = ' ' * 4
+    @sample_inputs = [ @indentation  # TC27: |indentation|eos|
+    ]
+  end
+
+  it 'should return the integer token after scanning once' do
+    @sample_inputs.each do |sample|
+      instance = RaccLexer::LexerEngine.new
+      instance.input = sample
+      actual_token = instance.scan(/.+/)  # Read any token
+      actual_token.must_equal :indentation
+
+      instance.lexeme.must_equal @indentation
+
+      # Must be ready for next token...
+      instance.must_be_in_state([:after_indentation, :recognized])
+    end
+  end
+
+  it 'should return eos after token detection' do
+    @sample_inputs.each do |sample|
+      instance = RaccLexer::LexerEngine.new
+      instance.input = sample
+      actual_token = instance.scan(/.+/)
+      actual_token.must_equal :indentation
+
+      # AFTER the token, we expect an eos
+      second_token = instance.scan(/.+/)
+      second_token.must_equal :eos
+    end
+  end
+
+end #describe
+=end
 
 # End of file

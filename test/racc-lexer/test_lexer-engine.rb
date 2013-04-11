@@ -443,15 +443,16 @@ end #describe
 
 
 
-=begin
-describe "Test cases: TC27" do
+
+describe "Test cases: TC27, TC29" do
   before do
     @indentation = ' ' * 4
-    @sample_inputs = [ @indentation  # TC27: |indentation|eos|
+    @sample_inputs = [ @indentation,  # TC27: |indentation|eos|
+      @indentation + '# Comment'      # TC29: |indentation|noise|eos|
     ]
   end
 
-  it 'should return the integer token after scanning once' do
+  it 'should return the indentation token after scanning once' do
     @sample_inputs.each do |sample|
       instance = RaccLexer::LexerEngine.new
       instance.input = sample
@@ -465,7 +466,7 @@ describe "Test cases: TC27" do
     end
   end
 
-  it 'should return eos after token detection' do
+  it 'should return eos after indentation detection' do
     @sample_inputs.each do |sample|
       instance = RaccLexer::LexerEngine.new
       instance.input = sample
@@ -475,6 +476,45 @@ describe "Test cases: TC27" do
       # AFTER the token, we expect an eos
       second_token = instance.scan(/.+/)
       second_token.must_equal :eos
+    end
+  end
+
+end #describe
+
+
+=begin
+describe "Test cases: TC28, TC30" do
+  before do
+    @indentation = ' ' * 4
+    @sample_inputs = [ @indentation + "\n",  # TC28: |indentation|eol|
+      @indentation + '# Comment\n'      # TC30: |indentation|noise|eol|
+    ]
+  end
+
+  it 'should return the indentation token after scanning once' do
+    @sample_inputs.each do |sample|
+      instance = RaccLexer::LexerEngine.new
+      instance.input = sample
+      actual_token = instance.scan(/.+/)  # Read any token
+      actual_token.must_equal :indentation
+
+      instance.lexeme.must_equal @indentation
+
+      # Must be ready for next token...
+      instance.must_be_in_state([:after_indentation, :recognized])
+    end
+  end
+
+  it 'should return eol after indentation detection' do
+    @sample_inputs.each do |sample|
+      instance = RaccLexer::LexerEngine.new
+      instance.input = sample
+      actual_token = instance.scan(/.+/)
+      actual_token.must_equal :indentation
+      STDERR.puts instance.scanner.inspect
+      # AFTER the token, we expect an eol
+      second_token = instance.scan(/.+/)
+      second_token.must_equal :eol
     end
   end
 

@@ -54,7 +54,7 @@ each line of text from the input source adheres to the following structure:
                              +<------ token <------+
   
 
-The LexerEngine classifies the lexemes from the input text into five categories:
+The LexerEngine classifies the recognized lexemes from the input text into five categories:
 -noise (any text that can be safely ignored by the parser). Typically, the "noise" lexemes
 are: comments or whitespace text.
 -indentation: typically spaces or tabs at the start of a text line.
@@ -94,7 +94,7 @@ class LexerEngine
     end
 
     state :after_indentation do
-      enter :emit_indentation # Entry action
+      enter :eat_indentation # Entry action
     end
 
     state :in_line_body
@@ -251,11 +251,20 @@ public
   def noise_pattern()
     return /#.*|\/\*.*?\*\//  # Two comment styles: C comments /* comment */, Ruby line comments # Comment...
   end
+  
+  # Return the characters allowed in a line indentation.
+  def indentation_pattern()
+    return /(?: |\t)+/
+  end
 
   # Pre-condition: eol is at current scanning position.
   def eat_eol()
     @lexeme = scanner.scan(eol_pattern)     # Copy eol into the lexeme attribute
     @lineno += 1
+  end
+  
+  def eat_indentation()
+    @lexeme = scanner.scan(indentation_pattern)     # Copy indentation text into the lexeme attribute
   end
 
 
@@ -272,14 +281,22 @@ public
     raise LexicalError.new("No input text was provided.", LexemePosition::at_start) if end_state_scanning()
 
     token_enqueued if token_recognition_state == :recognized
+    if current_state_name(:line_positioning) == :at_line_start
+      indentation_found = scanner.check(indentation_pattern)
+      if indentation_found
+        indentation_scanned() # STM event
+        token_recognized() # STM event
+        return :indentation
+      end
+    end
     scanner.scan(noise_pattern)
     if eos?
-      eos_detected
+      eos_detected() # STM event
       return :eos
     else
       found_eol = scanner.check(eol_pattern)
       if found_eol
-        eol_checked() # Trigger an event
+        eol_checked() # STM event
         return :eol
       end
       result = scanner.scan(aPattern) # Incomplete ... update line positioning as well

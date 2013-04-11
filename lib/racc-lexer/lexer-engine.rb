@@ -12,7 +12,7 @@ require_relative 'lexeme-position'
 
 module RaccLexer	# This module is used as a namespace
 
-=begin rdoc
+=begin
 Coarse-grained state transition machines for a generic lexer.
 Two state machines are managed conjointly:
   - line_positioning
@@ -35,6 +35,32 @@ indentation_scanned: the scanner found an indentation in the input stream. The i
 expected_char_checked: the scanner found a character that could be the begin of a valid token.
 unexpected_char_checked: the scanner detected an unexpected character (i.e. a character that cannot be part of some token).
 token_recognized: the scanner recognized a valid token in the input stream.
+=end
+
+=begin rdoc
+The LexerEngine class is the workhorse of the RaccLexer library.
+It scans over the input text and return the relevant input text fragments 
+to the higher-level lexer components.
+Internally, a LexerEngine contains a StringScanner object that performs 
+the low-level scanning work. The LexerEngine class relies on the assumption that
+each line of text from the input source adheres to the following structure:
+
+  ()->+----------------->+-->+-->+------------>+-->+-->+-- eol -->+-->()
+      |                  ^   ^   |             ^   |   |          ^
+      v                  |   |   v             |   |   v          |
+      +-- indentation -->+   |   +--> noise -->+   |   +-- eos -->+
+                             |                     |
+                             |                     v
+                             +<------ token <------+
+  
+
+The LexerEngine classifies the lexemes from the input text into five categories:
+-noise (any text that can be safely ignored by the parser). Typically, the "noise" lexemes
+are: comments or whitespace text.
+-indentation: typically spaces or tabs at the start of a text line.
+-eol: end of line delimiter
+-eos: a symbolic representation of the end of the input text.
+-token: any other text element of significance for the parser.
 =end
 class LexerEngine
   include EdgeStateMachine # Mixin module to implement state machines

@@ -22,6 +22,11 @@ class Token
   # [theValue]. See doc of 'value' attribute. 
   # [theLexeme]. See doc of 'lexeme' attribute.
   # [aPosition]. See doc of 'position' attribute.
+  # Example:
+  #  Token.new(1234, '1234', LexemePosition.new(10, 2, 3))
+  #  The lexeme is '1234', the value is the integer 1234,
+  #  The lexeme position is: 10th character in the input stream,
+  #  column 3 in line 2.
 	def initialize(theValue, theLexeme, aPosition)
 		@value, @lexeme, @position =  theValue, theLexeme, aPosition
 	end

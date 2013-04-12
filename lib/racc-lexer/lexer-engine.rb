@@ -295,7 +295,7 @@ public
       return :eos
     else
       found_eol = scanner.check(eol_pattern)
-      if found_eol
+      unless found_eol.nil?
         eol_checked() # STM event
         return :eol
       end

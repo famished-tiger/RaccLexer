@@ -482,12 +482,12 @@ describe "Test cases: TC27, TC29" do
 end #describe
 
 
-=begin
+
 describe "Test cases: TC28, TC30" do
   before do
     @indentation = ' ' * 4
     @sample_inputs = [ @indentation + "\n",  # TC28: |indentation|eol|
-      @indentation + '# Comment\n'      # TC30: |indentation|noise|eol|
+      @indentation + "# Comment\n"      # TC30: |indentation|noise|eol|
     ]
   end
 
@@ -505,20 +505,22 @@ describe "Test cases: TC28, TC30" do
     end
   end
 
+  
   it 'should return eol after indentation detection' do
     @sample_inputs.each do |sample|
       instance = RaccLexer::LexerEngine.new
       instance.input = sample
       actual_token = instance.scan(/.+/)
       actual_token.must_equal :indentation
-      STDERR.puts instance.scanner.inspect
+
       # AFTER the token, we expect an eol
+      second_token = nil
       second_token = instance.scan(/.+/)
       second_token.must_equal :eol
     end
   end
 
 end #describe
-=end
+
 
 # End of file

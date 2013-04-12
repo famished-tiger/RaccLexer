@@ -5,7 +5,7 @@ require_relative 'lexer-exceptions'
 module RaccLexer # This module is used as a namespace
 
 # In essence, an event handler is a pair: pattern or string => action. It specifies the action to launch
-# when the current Lexer input matches the pattern.
+# when the current lexeme matches the pattern.
 # Example:
 # handler = EventHandler.new(/\w+/, enqueue(:T_IDENTIFIER))
 # # Tells the lexer to enqueue the T_IDENTIFIER when the current text to analyze matches

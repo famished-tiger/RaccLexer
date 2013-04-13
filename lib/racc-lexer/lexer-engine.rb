@@ -247,9 +247,18 @@ public
     return /\r?\n/
   end
 
-  # Make it state-dependent
+  # Purpose: give the regular expression of input text elements that should
+  # be discarded (= not returned to the parser).
+  # Noise typically consists of:
+  # Comments, whitespace (NOT INCLUDING line separators)
+  # Override this method if the language has different comment conventions.
+  # TODO: Make it state-dependent
   def noise_pattern()
-    return /#.*|\/\*.*?\*\//  # Two comment styles: C comments /* comment */, Ruby line comments # Comment...
+    # noise pattern = one or more of the following:
+    # - Ruby-style line comment: # This is a comment until the end of line
+    # - Single line C-style comment: /* This is a comment */
+    # - whitespace character: a space, a tab or a form feed
+    return /(?:#.*|\/\*.*?\*\/|[ \t\f])+/  # Two comment styles: C comments /* comment */,  # Comment...
   end
   
   # Return the characters allowed in a line indentation.

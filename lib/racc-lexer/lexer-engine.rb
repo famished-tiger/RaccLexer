@@ -12,6 +12,49 @@ require_relative 'lexeme-position'
 
 module RaccLexer	# This module is used as a namespace
 
+
+=begin rdoc
+The LexerEngine class is the workhorse of the RaccLexer library.
+It scans over the input text and return the relevant input text fragments 
+to the higher-level lexer components.
+Internally, a LexerEngine contains a StringScanner object that performs 
+the low-level scanning work. The LexerEngine class is based on the assumption that
+each line of text from the input source adheres to the following structure:
+
+  ()->+----------------->+-->+-->+------------>+-->+-->+-- eol -->+-->()
+      |                  ^   ^   |             ^   |   |          ^
+      v                  |   |   v             |   |   v          |
+      +-- indentation -->+   |   +--> noise -->+   |   +-- eos -->+
+                             |                     |
+                             |                     v
+                             +<------ token <------+
+  
+
+A LexerEngine classifies the recognized lexemes from the input text into five categories:
+-noise (any text that can be safely ignored by the parser). Typically, "noise" lexemes are:
+    comments or whitespace text.
+-indentation: typically spaces or tabs at the start of a text line.
+-eol: end of line delimiter
+-eos: a symbolic representation of the end of the input text.
+-token: any other text element that matches a pattern given to the LexerEngine#scan method..
+=end
+class LexerEngine
+  include EdgeStateMachine # Mixin module to implement state machines
+
+	# Link to the shared low-level scanner (behaves as a StringScanner)
+  # These are the methods in use: getch, eos?, pos, scan, reset, skip, check
+	attr_reader(:scanner)
+
+	# Lexeme being recognized. A lexeme is an extract from the input text that is a recognized as a token of the language.
+	attr_reader(:lexeme)
+
+  # The current line number in the input text
+	attr_reader(:lineno)
+
+	# The position in the input text just after the last encountered newline.
+	attr_reader(:line_offset)
+
+
 =begin
 Coarse-grained state transition machines for a generic lexer.
 Two state machines are managed conjointly:
@@ -36,49 +79,6 @@ expected_char_checked: the scanner found a character that could be the begin of 
 unexpected_char_checked: the scanner detected an unexpected character (i.e. a character that cannot be part of some token).
 token_recognized: the scanner recognized a valid token in the input stream.
 =end
-
-=begin rdoc
-The LexerEngine class is the workhorse of the RaccLexer library.
-It scans over the input text and return the relevant input text fragments 
-to the higher-level lexer components.
-Internally, a LexerEngine contains a StringScanner object that performs 
-the low-level scanning work. The LexerEngine class relies on the assumption that
-each line of text from the input source adheres to the following structure:
-
-  ()->+----------------->+-->+-->+------------>+-->+-->+-- eol -->+-->()
-      |                  ^   ^   |             ^   |   |          ^
-      v                  |   |   v             |   |   v          |
-      +-- indentation -->+   |   +--> noise -->+   |   +-- eos -->+
-                             |                     |
-                             |                     v
-                             +<------ token <------+
-  
-
-The LexerEngine classifies the recognized lexemes from the input text into five categories:
--noise (any text that can be safely ignored by the parser). Typically, the "noise" lexemes
-are: comments or whitespace text.
--indentation: typically spaces or tabs at the start of a text line.
--eol: end of line delimiter
--eos: a symbolic representation of the end of the input text.
--token: any other text element of significance for the parser.
-=end
-class LexerEngine
-  include EdgeStateMachine # Mixin module to implement state machines
-
-	# Link to the shared low-level scanner (behaves as a StringScanner)
-  # These are the methods in use: getch, eos?, pos, scan, reset, skip, check
-	attr_reader(:scanner)
-
-	# Lexeme being recognized. A lexeme is an extract from the input text that is a recognized as a token of the language.
-	attr_reader(:lexeme)
-
-  # The current line number in the input text
-	attr_reader(:lineno)
-
-	# The position in the input text just after the last encountered newline.
-	attr_reader(:line_offset)
-
-
   #######################
   # State machine tracking the current scan position w.r.t. current line of text.
   #######################
@@ -277,7 +277,7 @@ public
   end
 
 
-	# Tries to match the text at the current position to the pattern.
+	# Tries to match the text at the current scanning position to the given pattern.
 	# If there’s a match, the scanner advances the “scan pointer”, updates the 'lexeme' attribute.
   # Returns a Symbol or nil
   #   - :eos end of input text stream
@@ -291,7 +291,7 @@ public
 
     token_enqueued if token_recognition_state == :recognized
     if current_state_name(:line_positioning) == :at_line_start
-      indentation_found = scanner.check(indentation_pattern)
+      indentation_found = indentation_pattern.nil? ? nil : scanner.check(indentation_pattern)
       if indentation_found
         indentation_scanned() # STM event
         token_recognized() # STM event

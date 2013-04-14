@@ -346,22 +346,22 @@ describe "Test cases: TC11, TC15, TC17, TC19, TC21, TC23, TC25" do
   before do
     @sample_inputs = ["12345*",   # TC11: |token|token|eos|
       "/*comment*/12345*",        # TC15: |noise|token|token|eos|
-      "12345/*comment*/*",        # TC17: |token|noise|token|eos|  
+      "12345/*comment*/*",        # TC17: |token|noise|token|eos|
       "12345*/*comment*/",        # TC19: |token|token|noise|eos|
       "/*comment1*/12345/*comment2*/*",   # TC21: |noise|token|noise|token|eos|
-      "/*comment1*/12345*/*comment2*/",   # TC23: |noise|token|token|noise|eos| 
-      "12345/*comment1*/*/*comment2*/"    # TC25: |token|noise|token|noise|eos|       
+      "/*comment1*/12345*/*comment2*/",   # TC23: |noise|token|token|noise|eos|
+      "12345/*comment1*/*/*comment2*/"    # TC25: |token|noise|token|noise|eos|
     ]
     @token_pattern = /\d+|[-+*\/]/  # Read ordinal literal or arith. operator
     @expected_lexemes = %w[12345 *]
   end
 
-  it 'should return the two tokens' do 
+  it 'should return the two tokens' do
     @sample_inputs.each do |sample|
       instance = RaccLexer::LexerEngine.new
       instance.input = sample
       @expected_lexemes.each do |expected|
-        actual_token = instance.scan(@token_pattern) 
+        actual_token = instance.scan(@token_pattern)
         actual_token.must_equal :token
 
         instance.lexeme.must_equal expected
@@ -400,18 +400,18 @@ describe "Test cases: TC12, TC16, TC18, TC20, TC22, TC24, TC26" do
       "12345*/*comment*/\n",        # TC20: |token|token|noise|eol|
       "/*comment1*/ 12345 /*comment2*/ *\n",        # TC22: |noise|token|noise|token|eol|
       "/*comment1*/12345 * /*comment2*/\n",        # TC24: |noise|token|token|noise|eol|
-      "12345/*comment1*/ * /*comment2*/\n"         # TC26: |token|noise|token|noise|eol|      
+      "12345/*comment1*/ * /*comment2*/\n"         # TC26: |token|noise|token|noise|eol|
     ]
     @token_pattern = /\d+|[-+*\/]/  # Read ordinal literal or arith. operator
     @expected_lexemes = %w[12345 *]
   end
 
-  it 'should return the two tokens' do 
+  it 'should return the two tokens' do
     @sample_inputs.each do |sample|
       instance = RaccLexer::LexerEngine.new
       instance.input = sample
       @expected_lexemes.each do |expected|
-        actual_token = instance.scan(@token_pattern) 
+        actual_token = instance.scan(@token_pattern)
         actual_token.must_equal :token
 
         instance.lexeme.must_equal expected
@@ -503,7 +503,7 @@ describe "Test cases: TC28, TC30" do
     end
   end
 
-  
+
   it 'should return eol after indentation detection' do
     @sample_inputs.each do |sample|
       instance = RaccLexer::LexerEngine.new
@@ -557,10 +557,10 @@ describe "Test cases: TC31, TC33, TC35, TC39" do
       second_token = instance.scan(/\d+/)
       second_token.must_equal :token
       instance.lexeme.must_equal '1234'
-      
+
       # After the integer, we expect an eos
       third_token = instance.scan(/.+/)
-      third_token.must_equal :eos      
+      third_token.must_equal :eos
     end
   end
 
@@ -603,10 +603,10 @@ describe "Test cases: TC32, TC34, TC36, TC40" do
       second_token = instance.scan(/\d+/)
       second_token.must_equal :token
       instance.lexeme.must_equal '1234'
-      
+
       # After the integer, we expect an eol
       third_token = instance.scan(/.+/)
-      third_token.must_equal :eol      
+      third_token.must_equal :eol
     end
   end
 
@@ -614,13 +614,16 @@ end #describe
 
 
 
-describe "Test cases: TC37, TC41, TC43, TC45" do
+describe "Test cases: TC37, TC41, TC43, TC45, TC47, TC49, TC51" do
   before do
     @indentation = ' ' * 4
     @sample_inputs = [ @indentation + '1234*',  # TC37: |indentation|token|token|eos|
       @indentation + '/*Comment*/ 1234*',   # TC41: |indentation|noise|token|token|eos|
       @indentation + '1234 /*Comment*/ *',  # TC43: |indentation|token|noise|token|eos|
-      @indentation + '1234* /*Comment*/'   # TC45: |indentation|token|token|noise|eos|
+      @indentation + '1234* /*Comment*/',   # TC45: |indentation|token|token|noise|eos|
+      @indentation + '/*Comment1*/ 1234 /*Comment2*/ *', # TC47: |indentation|noise|token|noise|token|eos|
+      @indentation + '/*Comment1*/ 1234* # Comment2',  # TC49: |indentation|noise|token|token|noise|eos|
+       @indentation + '1234 /*Comment1*/ * # Comment2' # TC51: |indentation|token|noise|token|noise|eos|
     ]
   end
 
@@ -649,28 +652,31 @@ describe "Test cases: TC37, TC41, TC43, TC45" do
       second_token = instance.scan(/\d+/)
       second_token.must_equal :token
       instance.lexeme.must_equal '1234'
-      
+
       # AFTER the indentation, we expect a star
       third_token = instance.scan(/./)
       third_token.must_equal :token
-      instance.lexeme.must_equal '*'      
-      
+      instance.lexeme.must_equal '*'
+
       # After the star, we expect an eos
       fourth_token = instance.scan(/.+/)
-      fourth_token.must_equal :eos      
+      fourth_token.must_equal :eos
     end
   end
 
 end #describe
 
 
-describe "Test cases: TC38, TC42, TC44, TC46" do
+describe "Test cases: TC38, TC42, TC44, TC46, TC48, TC50, TC52" do
   before do
     @indentation = ' ' * 4
     @sample_inputs = [ @indentation + "1234*\n",  # TC38: |indentation|token|token|eol|
       @indentation + "/*Comment*/ 1234*\n", # TC42: |indentation|noise|token|token|eol|
       @indentation + "1234/*Comment*/ *\n", # TC44: |indentation|token|noise|token|eol|
-      @indentation + "1234*/*Comment*/ \n"  # TC46: |indentation|token|token|noise|eol|
+      @indentation + "1234*/*Comment*/ \n", # TC46: |indentation|token|token|noise|eol|
+      @indentation + "/*Comment1*/ 1234/*Comment2*/ *\n", # TC48: |indentation|noise|token|noise|token|eol|
+      @indentation + "/*Comment1*/ 1234* # Comment2 \n",  # TC50: |indentation|noise|token|token|noise|eol|
+      @indentation + "1234/*Comment1*/* # Comment2 \n"   # TC52: |indentation|token|noise|token|noise|eol|
     ]
   end
 
@@ -699,15 +705,15 @@ describe "Test cases: TC38, TC42, TC44, TC46" do
       second_token = instance.scan(/\d+/)
       second_token.must_equal :token
       instance.lexeme.must_equal '1234'
-      
+
       # AFTER the indentation, we expect a star
       third_token = instance.scan(/./)
       third_token.must_equal :token
-      instance.lexeme.must_equal '*'      
-      
+      instance.lexeme.must_equal '*'
+
       # After the star, we expect an eol
       fourth_token = instance.scan(/.+/)
-      fourth_token.must_equal :eol      
+      fourth_token.must_equal :eol
     end
   end
 

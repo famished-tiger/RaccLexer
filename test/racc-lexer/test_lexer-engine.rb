@@ -220,7 +220,7 @@ end #describe
 describe "TC3: |noise|eos|" do
   subject do
     lexer = RaccLexer::LexerEngine.new
-    lexer.input = "# Some comment"
+    lexer.input = "/* Some comment followed by spaces */  "
     lexer
   end
 
@@ -342,7 +342,6 @@ end #describe
 
 
 
-
 describe "Test cases: TC11, TC15, TC17, TC19, TC21, TC23, TC25" do
   before do
     @sample_inputs = ["12345*",   # TC11: |token|token|eos|
@@ -399,9 +398,9 @@ describe "Test cases: TC12, TC16, TC18, TC20, TC22, TC24, TC26" do
       "/*comment*/12345*\n",       # TC16: |noise|token|token|eol|
       "12345/*comment*/*\n",        # TC18: |token|noise|token|eol|
       "12345*/*comment*/\n",        # TC20: |token|token|noise|eol|
-      "/*comment1*/12345/*comment2*/*\n",        # TC22: |noise|token|noise|token|eol|
-      "/*comment1*/12345*/*comment2*/\n",        # TC24: |noise|token|token|noise|eol|
-      "12345/*comment1*/*/*comment2*/\n"         # TC26: |token|noise|token|noise|eol|      
+      "/*comment1*/ 12345 /*comment2*/ *\n",        # TC22: |noise|token|noise|token|eol|
+      "/*comment1*/12345 * /*comment2*/\n",        # TC24: |noise|token|token|noise|eol|
+      "12345/*comment1*/ * /*comment2*/\n"         # TC26: |token|noise|token|noise|eol|      
     ]
     @token_pattern = /\d+|[-+*\/]/  # Read ordinal literal or arith. operator
     @expected_lexemes = %w[12345 *]
@@ -443,12 +442,11 @@ end #describe
 
 
 
-
 describe "Test cases: TC27, TC29" do
   before do
     @indentation = ' ' * 4
     @sample_inputs = [ @indentation,  # TC27: |indentation|eos|
-      @indentation + '# Comment'      # TC29: |indentation|noise|eos|
+      @indentation + '# Comment '      # TC29: |indentation|noise|eos|
     ]
   end
 
@@ -487,7 +485,7 @@ describe "Test cases: TC28, TC30" do
   before do
     @indentation = ' ' * 4
     @sample_inputs = [ @indentation + "\n",  # TC28: |indentation|eol|
-      @indentation + "# Comment\n"      # TC30: |indentation|noise|eol|
+      @indentation + "# Comment \n"      # TC30: |indentation|noise|eol|
     ]
   end
 
@@ -522,5 +520,197 @@ describe "Test cases: TC28, TC30" do
 
 end #describe
 
+
+
+describe "Test cases: TC31, TC33, TC35, TC39" do
+  before do
+    @indentation = ' ' * 4
+    @sample_inputs = [ @indentation + '1234',  # TC31: |indentation|token|eos|
+      @indentation + '/* Comment */1234',      # TC33: |indentation|noise|token|eos|
+      @indentation + '1234 /* Comment */',     # TC35: |indentation|token|noise|eos|
+      @indentation + '/* Comment 1*/ 1234 # Comment2'      # TC39: |indentation|noise|token|noise|eos|
+    ]
+  end
+
+  it 'should return the indentation token after scanning once' do
+    @sample_inputs.each do |sample|
+      instance = RaccLexer::LexerEngine.new
+      instance.input = sample
+      actual_token = instance.scan(/.+/)  # Read any token
+      actual_token.must_equal :indentation
+
+      instance.lexeme.must_equal @indentation
+
+      # Must be ready for next token...
+      instance.must_be_in_state([:after_indentation, :recognized])
+    end
+  end
+
+  it 'should return the integer token after indentation detection' do
+    @sample_inputs.each do |sample|
+      instance = RaccLexer::LexerEngine.new
+      instance.input = sample
+      actual_token = instance.scan(/.+/)
+      actual_token.must_equal :indentation
+
+      # AFTER the indentation, we expect an integer
+      second_token = instance.scan(/\d+/)
+      second_token.must_equal :token
+      instance.lexeme.must_equal '1234'
+      
+      # After the integer, we expect an eos
+      third_token = instance.scan(/.+/)
+      third_token.must_equal :eos      
+    end
+  end
+
+end #describe
+
+
+
+describe "Test cases: TC32, TC34, TC36, TC40" do
+  before do
+    @indentation = ' ' * 4
+    @sample_inputs = [ @indentation + "1234\n",  # TC32: |indentation|token|eol|
+      @indentation + "/* Comment */ 1234\n",     # TC34: |indentation|noise|token|eol|
+      @indentation + "1234 # Comment \n",        # TC36: |36|indentation|token|noise|eol|
+      @indentation + "/* Comment1 */ 1234 # Comment2 \n"  # TC40: |indentation|noise|token|noise|eol|
+    ]
+  end
+
+  it 'should return the indentation token after scanning once' do
+    @sample_inputs.each do |sample|
+      instance = RaccLexer::LexerEngine.new
+      instance.input = sample
+      actual_token = instance.scan(/.+/)  # Read any token
+      actual_token.must_equal :indentation
+
+      instance.lexeme.must_equal @indentation
+
+      # Must be ready for next token...
+      instance.must_be_in_state([:after_indentation, :recognized])
+    end
+  end
+
+  it 'should return the integer token after indentation detection' do
+    @sample_inputs.each do |sample|
+      instance = RaccLexer::LexerEngine.new
+      instance.input = sample
+      actual_token = instance.scan(/.+/)
+      actual_token.must_equal :indentation
+
+      # AFTER the indentation, we expect an integer
+      second_token = instance.scan(/\d+/)
+      second_token.must_equal :token
+      instance.lexeme.must_equal '1234'
+      
+      # After the integer, we expect an eol
+      third_token = instance.scan(/.+/)
+      third_token.must_equal :eol      
+    end
+  end
+
+end #describe
+
+
+
+describe "Test cases: TC37, TC41, TC43, TC45" do
+  before do
+    @indentation = ' ' * 4
+    @sample_inputs = [ @indentation + '1234*',  # TC37: |indentation|token|token|eos|
+      @indentation + '/*Comment*/ 1234*',   # TC41: |indentation|noise|token|token|eos|
+      @indentation + '1234 /*Comment*/ *',  # TC43: |indentation|token|noise|token|eos|
+      @indentation + '1234* /*Comment*/'   # TC45: |indentation|token|token|noise|eos|
+    ]
+  end
+
+  it 'should return the indentation token after scanning once' do
+    @sample_inputs.each do |sample|
+      instance = RaccLexer::LexerEngine.new
+      instance.input = sample
+      actual_token = instance.scan(/.+/)  # Read any token
+      actual_token.must_equal :indentation
+
+      instance.lexeme.must_equal @indentation
+
+      # Must be ready for next token...
+      instance.must_be_in_state([:after_indentation, :recognized])
+    end
+  end
+
+  it "should return the integer, then '*' token after indentation detection" do
+    @sample_inputs.each do |sample|
+      instance = RaccLexer::LexerEngine.new
+      instance.input = sample
+      actual_token = instance.scan(/.+/)
+      actual_token.must_equal :indentation
+
+      # AFTER the indentation, we expect an integer
+      second_token = instance.scan(/\d+/)
+      second_token.must_equal :token
+      instance.lexeme.must_equal '1234'
+      
+      # AFTER the indentation, we expect a star
+      third_token = instance.scan(/./)
+      third_token.must_equal :token
+      instance.lexeme.must_equal '*'      
+      
+      # After the star, we expect an eos
+      fourth_token = instance.scan(/.+/)
+      fourth_token.must_equal :eos      
+    end
+  end
+
+end #describe
+
+
+describe "Test cases: TC38, TC42, TC44, TC46" do
+  before do
+    @indentation = ' ' * 4
+    @sample_inputs = [ @indentation + "1234*\n",  # TC38: |indentation|token|token|eol|
+      @indentation + "/*Comment*/ 1234*\n", # TC42: |indentation|noise|token|token|eol|
+      @indentation + "1234/*Comment*/ *\n", # TC44: |indentation|token|noise|token|eol|
+      @indentation + "1234*/*Comment*/ \n"  # TC46: |indentation|token|token|noise|eol|
+    ]
+  end
+
+  it 'should return the indentation token after scanning once' do
+    @sample_inputs.each do |sample|
+      instance = RaccLexer::LexerEngine.new
+      instance.input = sample
+      actual_token = instance.scan(/.+/)  # Read any token
+      actual_token.must_equal :indentation
+
+      instance.lexeme.must_equal @indentation
+
+      # Must be ready for next token...
+      instance.must_be_in_state([:after_indentation, :recognized])
+    end
+  end
+
+  it "should return the integer, then '*' token after indentation detection" do
+    @sample_inputs.each do |sample|
+      instance = RaccLexer::LexerEngine.new
+      instance.input = sample
+      actual_token = instance.scan(/.+/)
+      actual_token.must_equal :indentation
+
+      # AFTER the indentation, we expect an integer
+      second_token = instance.scan(/\d+/)
+      second_token.must_equal :token
+      instance.lexeme.must_equal '1234'
+      
+      # AFTER the indentation, we expect a star
+      third_token = instance.scan(/./)
+      third_token.must_equal :token
+      instance.lexeme.must_equal '*'      
+      
+      # After the star, we expect an eol
+      fourth_token = instance.scan(/.+/)
+      fourth_token.must_equal :eol      
+    end
+  end
+
+end #describe
 
 # End of file

@@ -15,9 +15,9 @@ module RaccLexer	# This module is used as a namespace
 
 =begin rdoc
 The LexerEngine class is the workhorse of the RaccLexer library.
-It scans over the input text and return the relevant input text fragments 
+It scans over the input text and return the relevant input text fragments
 to the higher-level lexer components.
-Internally, a LexerEngine contains a StringScanner object that performs 
+Internally, a LexerEngine contains a StringScanner object that performs
 the low-level scanning work. The LexerEngine class is based on the assumption that
 each line of text from the input source adheres to the following structure:
 
@@ -28,7 +28,7 @@ each line of text from the input source adheres to the following structure:
                              |                     |
                              |                     v
                              +<------ token <------+
-  
+
 
 A LexerEngine classifies the recognized lexemes from the input text into five categories:
 -noise (any text that can be safely ignored by the parser). Typically, "noise" lexemes are:
@@ -37,6 +37,8 @@ A LexerEngine classifies the recognized lexemes from the input text into five ca
 -eol: end of line delimiter
 -eos: a symbolic representation of the end of the input text.
 -token: any other text element that matches a pattern given to the LexerEngine#scan method..
+
+
 =end
 class LexerEngine
   include EdgeStateMachine # Mixin module to implement state machines
@@ -153,9 +155,7 @@ token_recognized: the scanner recognized a valid token in the input stream.
     state :recognized
 
     # End states
-    state :done # do
-#      enter :complete_scan
-#    end
+    state :done
 
     state :failed # Error state: an unexpected character occurred while Lexer was trying to recognize a lexeme
     state :aborted  # Error state: an unexpected eos occurred while Lexer was trying to recognize a lexeme
@@ -215,67 +215,6 @@ public
     self.input_given # Trigger an event for one state machine
   end
 
-  # The lexer state is implemented as a combination of two state machines.
-  # This helper method returns the names of the current state from both state machines.
-  # It is thus a couple of the form:
-  # [ name of position in line state, name of token recognition state ]
-  def complete_state_name()
-    position_in_line_state = current_state_name(:line_positioning)
-    token_recognition_state = current_state_name(:token_recognition)
-
-    return [ position_in_line_state, token_recognition_state]
-  end
-
-
-  # Return the name of the current state of the 'token_recognition' STM.
-  def token_recognition_state()
-    return current_state_name(:token_recognition)
-  end
-
-  # Check whether the token recognition state reached an end state
-  def end_state_scanning()
-    end_states = [:done, :aborted, :failed]
-    return end_states.include? token_recognition_state
-  end
-
-  # Purpose = Make the lexeme text empty.
-	def clear_lexeme()
-		@lexeme = ''
-	end
-
-  def eol_pattern()
-    return /\r?\n/
-  end
-
-  # Purpose: give the regular expression of input text elements that should
-  # be discarded (= not returned to the parser).
-  # Noise typically consists of:
-  # Comments, whitespace (NOT INCLUDING line separators)
-  # Override this method if the language has different comment conventions.
-  # TODO: Make it state-dependent
-  def noise_pattern()
-    # noise pattern = one or more of the following:
-    # - Ruby-style line comment: # This is a comment until the end of line
-    # - Single line C-style comment: /* This is a comment */
-    # - whitespace character: a space, a tab or a form feed
-    return /(?:#.*|\/\*.*?\*\/|[ \t\f])+/  # Two comment styles: C comments /* comment */,  # Comment...
-  end
-  
-  # Return the characters allowed in a line indentation.
-  def indentation_pattern()
-    return /(?: |\t)+/
-  end
-
-  # Pre-condition: eol is at current scanning position.
-  def eat_eol()
-    @lexeme = scanner.scan(eol_pattern)     # Copy eol into the lexeme attribute
-    @lineno += 1
-  end
-  
-  def eat_indentation()
-    @lexeme = scanner.scan(indentation_pattern)     # Copy indentation text into the lexeme attribute
-  end
-
 
 	# Tries to match the text at the current scanning position to the given pattern.
 	# If there’s a match, the scanner advances the “scan pointer”, updates the 'lexeme' attribute.
@@ -320,6 +259,88 @@ public
 		return nil
 	end
 
+  
+  ###########
+  # State-based methods
+  ###########
+
+  # The lexer state is implemented as a combination of two state machines.
+  # This helper method returns the names of the current state from both state machines.
+  # It is thus a couple of the form:
+  # [ name of position in line state, name of token recognition state ]
+  def complete_state_name()
+    position_in_line_state = current_state_name(:line_positioning)
+    token_recognition_state = current_state_name(:token_recognition)
+
+    return [ position_in_line_state, token_recognition_state]
+  end
+
+
+  # Return the name of the current state of the 'token_recognition' STM.
+  def token_recognition_state()
+    return current_state_name(:token_recognition)
+  end
+
+  # Check whether the token recognition state reached an end state
+  def end_state_scanning()
+    end_states = [:done, :aborted, :failed]
+    return end_states.include? token_recognition_state
+  end
+
+  
+	# Return true iff end of input text is reached.
+  # This method leaves the state machines unchanged.
+	def eos?()
+    scanning_state = token_recognition_state()
+    return true if  (scanning_state == :done) || (scanning_state == :aborted)
+
+    return scanner.eos?()
+	end  
+
+  ###########
+  # Pattern-based methods
+  ###########
+  
+  # Purpose: give the regular expression recognizing line separators.
+  def eol_pattern()
+    return /\r?\n/
+  end
+
+  # Purpose: give the regular expression of input text elements that should
+  # be discarded (= not returned to the parser).
+  # Noise typically consists of:
+  # Comments, whitespace (NOT INCLUDING line separators)
+  # Override this method if the language has different comment conventions.
+  # TODO: Make it state-dependent
+  def noise_pattern()
+    # noise pattern = one or more of the following:
+    # - Ruby-style line comment: # This is a comment until the end of line
+    # - Single line C-style comment: /* This is a comment */
+    # - whitespace character: a space, a tab or a form feed
+    return /(?:#.*|\/\*.*?\*\/|[ \t\f])+/  # Two comment styles: C comments /* comment */,  # Comment...
+  end
+
+  # Return the regular expression that recognizes the characters allowed in a line indentation.
+  def indentation_pattern()
+    return /(?: |\t)+/
+  end
+  
+  # Purpose = Make the lexeme text empty.
+	def clear_lexeme()
+		@lexeme = ''
+	end
+
+  # Pre-condition: eol is at current scanning position.
+  def eat_eol()
+    @lexeme = scanner.scan(eol_pattern)     # Copy eol into the lexeme attribute
+    @lineno += 1
+  end
+
+  def eat_indentation()
+    @lexeme = scanner.scan(indentation_pattern)     # Copy indentation text into the lexeme attribute
+  end
+
+
   # Tell the lower-level scanner to move the current scanning position
   # by the amount of characters in lexeme.
   # TODO: ensure that the implementation complies to the state-machine.
@@ -348,14 +369,6 @@ public
 		return ch
 	end
 
-	# Return true iff end of input text is reached.
-  # This method leaves the state machines unchanged.
-	def eos?()
-    scanning_state = token_recognition_state()
-    return true if  (scanning_state == :done) || (scanning_state == :aborted)
-
-    return scanner.eos?()
-	end
 
 protected
   # Initialize the tokenizing state

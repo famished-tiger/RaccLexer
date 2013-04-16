@@ -33,7 +33,7 @@ class TestLexerEngine < MiniTest::Unit::TestCase
   # Test setup
   def setup()
     @subject = RaccLexer::LexerEngine.new # Create a blank instance
-    @sample_text = "  123 + 456;"
+    @sample_text = "  123 * 456; # Some comment"
   end
 
   # Testing the post-conditions
@@ -50,6 +50,9 @@ class TestLexerEngine < MiniTest::Unit::TestCase
 
     # No lexeme found yet...
     assert_nil @subject.lexeme
+    
+    # Snapshot stack is empty...
+    assert_empty @subject.snapshots
   end
 
   # TODO: check correctness of behaviour for all states.
@@ -70,6 +73,37 @@ class TestLexerEngine < MiniTest::Unit::TestCase
     # attribute lexeme initialized to empty string
     assert_empty @subject.lexeme
   end
+  
+  def test_add_snapshot()
+    @subject.input = @sample_text
+    @subject.scan(/.+/)
+    
+    assert_empty @subject.snapshots
+    @subject.add_snapshot
+    assert_equal @subject.snapshots.size, 1
+
+    @subject.add_snapshot
+    assert_equal @subject.snapshots.size, 2
+  end
+  
+  
+  def test_pop_snapshot()
+    @subject.input = @sample_text
+    @subject.scan(/.+/)
+    
+    assert_empty @subject.snapshots
+    @subject.add_snapshot
+    assert_equal @subject.snapshots.size, 1 
+
+    snapshot = @subject.pop_snapshot()
+    assert_equal snapshot.scan_position, @subject.scanner.pos()
+    assert_equal snapshot.lineno, @subject.lineno
+    assert_equal snapshot.lexeme, @subject.lexeme
+    # assert_equal snapshot.noise_pattern, @subject.noise_pattern
+    # assert_equal snapshot.indentation_pattern, @subject.indentation_pattern
+    assert_equal snapshot.stm_state, @subject.complete_state_name    
+  end
+  
 
 end # class
 

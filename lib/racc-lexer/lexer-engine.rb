@@ -13,6 +13,16 @@ require_relative 'lexeme-position'
 module RaccLexer	# This module is used as a namespace
 
 
+# Utility class used in saving/restoring the scanning state of a lexer engine.
+EngineSnapshot = Struct.new(:scan_position, # The scanning position in the input stream
+  :lineno,  # The line number
+  :lexeme,  # The buffered copy of the last scanned lexeme 
+  :noise_pattern, # The regular expression for text to discard
+  :indentation_pattern, # The regular expression (if any) for characters recognized as indentation at the start of a line.
+  :stm_state  # The state of the STM (State-Transition Machine)
+)
+
+
 =begin rdoc
 The LexerEngine class is the workhorse of the RaccLexer library.
 It scans over the input text and return the relevant input text fragments
@@ -55,6 +65,9 @@ class LexerEngine
 
 	# The position in the input text just after the last encountered newline.
 	attr_reader(:line_offset)
+  
+  # A stack of SoulSnapshot objects. Each keeping track of the execution state of the lexer engine.
+  attr_reader(:snapshots)
 
 
 =begin
@@ -198,6 +211,11 @@ token_recognized: the scanner recognized a valid token in the input stream.
   end # state_machine
 
 public
+  # Constructor
+  def initialize()
+    @snapshots = []
+  end
+
   # Set the input text to be subjected to the lexical analysis.
 	# [input_text]	Can be either a String or a StringScanner object.
   # It is the input to subjected to the lexical analysis.
@@ -368,6 +386,61 @@ public
 
 		return ch
 	end
+  
+=begin
+EngineSnapshot = Struct.new(:scan_position, # The scanning position in the input stream
+  :lineno,  # The line number
+  :lexeme,  # The buffered copy of the last scanned lexeme 
+  :noise_pattern, # The regular expression for text to discard
+  :indentation_pattern, # The regular expression (if any) for characters recognized as indentation at the start of a line.
+  :stm_state  # The state of the STM (State-Transition Machine)
+)
+=end  
+  
+  ###########
+  # Snapshot-specific methods
+  ###########
+  
+  # Make a snapshot of the current execution state of the lexer engine
+  # and push it on the stack.
+  def add_snapshot()
+    # Record the current execution state...
+    image = EngineSnapshot.new
+    image.scan_position = scanner.pos()
+    image.lineno = self.lineno
+    image.lexeme = self.lexeme
+    # image.noise_pattern = self.noise_pattern
+    # image.indentation_pattern = self.indentation_pattern
+    image.stm_state = complete_state_name
+    
+    snapshots << image  # Pushing it...
+  end
+  
+  
+  # Pop the topmost snapshot from the stack and make its
+  # settings the current execution state of the lexer engine.
+  def restore_snapshot()
+    image = pop_snapshot()
+    if image.nil? # Was the stack empty?...
+      # TODO: calculate accurate offset in line. 
+      raise InternalLexerError.new("Snapshot stack is empty.",  LexemePosition::new(scanner.position, lineno, 0))
+    end
+    
+    scanner.pos = image.scan_position
+    self.lineno = image.lineno
+    self.lexeme = image.lexeme
+    # self.noise_pattern = image.noise_pattern
+    # self.indentation_pattern = image.indentation_pattern = 
+    set_current_state(image.stm_state.first, :line_positioning)
+    set_current_state(image.stm_state.last, :token_recognition)   
+  end
+  
+  
+  # Remove the topmost snapshot from the stack and
+  # return it.
+  def pop_snapshot()
+    return snapshots.pop()
+  end
 
 
 protected

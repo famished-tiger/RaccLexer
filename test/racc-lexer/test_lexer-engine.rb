@@ -101,7 +101,25 @@ class TestLexerEngine < MiniTest::Unit::TestCase
     assert_equal snapshot.lexeme, @subject.lexeme
     # assert_equal snapshot.noise_pattern, @subject.noise_pattern
     # assert_equal snapshot.indentation_pattern, @subject.indentation_pattern
-    assert_equal snapshot.stm_state, @subject.complete_state_name    
+    expected = { :line_positioning => @subject.current_state(:line_positioning),
+      :token_recognition => @subject.current_state(:token_recognition)
+    }
+    assert_equal snapshot.stm_state, expected  
+  end
+  
+  def test_restore_snapshot()
+    @subject.input = @sample_text
+    
+    # Store the current engine aggregate state
+    @subject.add_snapshot() 
+    
+    # Read the first lexeme
+    last_token = @subject.scan(/.+/)
+    last_token.must_equal :indentation
+    
+    @subject.restore_snapshot() # We should be back at the start
+    last_token = @subject.scan(/.+/)
+    last_token.must_equal :indentation    
   end
   
 

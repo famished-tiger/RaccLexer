@@ -16,7 +16,7 @@ module RaccLexer	# This module is used as a namespace
 # Utility class used in saving/restoring the scanning state of a lexer engine.
 EngineSnapshot = Struct.new(:scan_position, # The scanning position in the input stream
   :lineno,  # The line number
-  :lexeme,  # The buffered copy of the last scanned lexeme 
+  :lexeme,  # The buffered copy of the last scanned lexeme
   :noise_pattern, # The regular expression for text to discard
   :indentation_pattern, # The regular expression (if any) for characters recognized as indentation at the start of a line.
   :stm_state  # The state of the STM (State-Transition Machine)
@@ -65,7 +65,7 @@ class LexerEngine
 
 	# The position in the input text just after the last encountered newline.
 	attr_reader(:line_offset)
-  
+
   # A stack of SoulSnapshot objects. Each keeping track of the execution state of the lexer engine.
   attr_reader(:snapshots)
 
@@ -265,9 +265,15 @@ public
         eol_checked() # STM event
         return :eol
       end
-      result = scanner.scan(aPattern) # Incomplete ... update line positioning as well
+      
+      multiline = is_multiline?(aPattern)    
+      result = scanner.scan(aPattern)
       unless result.nil?
         lexeme << result
+        if multiline
+          lines = lexeme.split(eol_pattern)
+          @lineno += lines.size - 1
+        end
         expected_char_checked_stm_line() # STM event
         token_recognized() # STM event
         return :token
@@ -277,7 +283,7 @@ public
 		return nil
 	end
 
-  
+
   ###########
   # State-based methods
   ###########
@@ -305,7 +311,7 @@ public
     return end_states.include? token_recognition_state
   end
 
-  
+
 	# Return true iff end of input text is reached.
   # This method leaves the state machines unchanged.
 	def eos?()
@@ -313,17 +319,18 @@ public
     return true if  (scanning_state == :done) || (scanning_state == :aborted)
 
     return scanner.eos?()
-	end  
+	end
 
   ###########
   # Pattern-based methods
   ###########
-  
+
   # Purpose: give the regular expression recognizing line separators.
   def eol_pattern()
-    return /\r?\n/
+    return /\r?\n|\r/  # In plain English: \n or \r\n or \r
   end
 
+  
   # Purpose: give the regular expression of input text elements that should
   # be discarded (= not returned to the parser).
   # Noise typically consists of:
@@ -342,7 +349,7 @@ public
   def indentation_pattern()
     return /(?: |\t)+/
   end
-  
+
   # Purpose = Make the lexeme text empty.
 	def clear_lexeme()
 		@lexeme = ''
@@ -386,21 +393,12 @@ public
 
 		return ch
 	end
-  
-=begin
-EngineSnapshot = Struct.new(:scan_position, # The scanning position in the input stream
-  :lineno,  # The line number
-  :lexeme,  # The buffered copy of the last scanned lexeme 
-  :noise_pattern, # The regular expression for text to discard
-  :indentation_pattern, # The regular expression (if any) for characters recognized as indentation at the start of a line.
-  :stm_state  # The state of the STM (State-Transition Machine)
-)
-=end  
-  
+
+
   ###########
   # Snapshot-specific methods
   ###########
-  
+
   # Make a snapshot of the current execution state of the lexer engine
   # and push it on the stack.
   def add_snapshot()
@@ -411,31 +409,33 @@ EngineSnapshot = Struct.new(:scan_position, # The scanning position in the input
     image.lexeme = self.lexeme
     # image.noise_pattern = self.noise_pattern
     # image.indentation_pattern = self.indentation_pattern
-    image.stm_state = complete_state_name
-    
+    image.stm_state = { :line_positioning => current_state(:line_positioning),
+      :token_recognition => current_state(:token_recognition)
+    }
+
     snapshots << image  # Pushing it...
   end
-  
-  
+
+
   # Pop the topmost snapshot from the stack and make its
   # settings the current execution state of the lexer engine.
   def restore_snapshot()
     image = pop_snapshot()
     if image.nil? # Was the stack empty?...
-      # TODO: calculate accurate offset in line. 
+      # TODO: calculate accurate offset in line.
       raise InternalLexerError.new("Snapshot stack is empty.",  LexemePosition::new(scanner.position, lineno, 0))
     end
-    
+
     scanner.pos = image.scan_position
-    self.lineno = image.lineno
-    self.lexeme = image.lexeme
+    @lineno = image.lineno
+    @lexeme = image.lexeme
     # self.noise_pattern = image.noise_pattern
-    # self.indentation_pattern = image.indentation_pattern = 
-    set_current_state(image.stm_state.first, :line_positioning)
-    set_current_state(image.stm_state.last, :token_recognition)   
+    # self.indentation_pattern = image.indentation_pattern =
+    set_current_state(image.stm_state[:line_positioning], :line_positioning)
+    set_current_state(image.stm_state[:token_recognition], :token_recognition)
   end
-  
-  
+
+
   # Remove the topmost snapshot from the stack and
   # return it.
   def pop_snapshot()
@@ -449,6 +449,11 @@ protected
     @lineno = 1
 		@line_offset = 0
     @token_pos = 0
+  end
+  
+  # Utility method. Returns true if the given regexp is multiline.
+  def is_multiline?(aRegexp)
+    return (aRegexp.options & Regexp::MULTILINE) != 0
   end
 
 end # class

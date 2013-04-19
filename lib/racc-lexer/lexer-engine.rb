@@ -105,7 +105,7 @@ token_recognized: the scanner recognized a valid token in the input stream.
     # State definition part
     #######################
     state :at_line_start do
-      enter :reset_indentation_length # Entry action (Not executed in case of initial state)
+      #enter :reset_indentation_length # Entry action (Not executed in case of initial state)
     end
 
     state :after_indentation do
@@ -138,8 +138,8 @@ token_recognized: the scanner recognized a valid token in the input stream.
       transition :from => [:at_line_start, :after_indentation, :in_line_body], :to => :in_line_body
     end
 
-    # Event: a non-eol token was detected
-    event :not_eol_checked do
+    # Event: the scanner is ready to scan past an eol
+    event :after_eol do
       transition :from => [:at_line_end], :to => :at_line_start
     end
 
@@ -246,7 +246,14 @@ public
 	def scan(aPattern)
     raise LexicalError.new("No input text was provided.", LexemePosition::at_start) if end_state_scanning()
 
-    token_enqueued if token_recognition_state == :recognized
+    token_enqueued() if token_recognition_state == :recognized
+    if complete_state_name() == [:at_line_end, :ready]
+      clear_lexeme()
+      line_offset = 0
+      @lineno += 1
+      after_eol() # Event
+    end 
+     
     if current_state_name(:line_positioning) == :at_line_start
       indentation_found = indentation_pattern.nil? ? nil : scanner.check(indentation_pattern)
       if indentation_found
@@ -272,10 +279,9 @@ public
         lexeme << result
         if multiline
           lines = lexeme.split(eol_pattern)
-          @lineno += lines.size - 1
-        else
-          expected_char_checked_stm_line() # STM event        
+          @lineno += lines.size - 1       
         end
+        expected_char_checked_stm_line() # STM event
         token_recognized() # STM event
         return :token
       end
@@ -359,7 +365,6 @@ public
   # Pre-condition: eol is at current scanning position.
   def eat_eol()
     @lexeme = scanner.scan(eol_pattern)     # Copy eol into the lexeme attribute
-    @lineno += 1
   end
 
   def eat_indentation()

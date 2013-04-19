@@ -50,7 +50,7 @@ class TestLexerEngine < MiniTest::Unit::TestCase
 
     # No lexeme found yet...
     assert_nil @subject.lexeme
-    
+
     # Snapshot stack is empty...
     assert_empty @subject.snapshots
   end
@@ -73,11 +73,11 @@ class TestLexerEngine < MiniTest::Unit::TestCase
     # attribute lexeme initialized to empty string
     assert_empty @subject.lexeme
   end
-  
+
   def test_add_snapshot()
     @subject.input = @sample_text
     @subject.scan(/.+/)
-    
+
     assert_empty @subject.snapshots
     @subject.add_snapshot
     assert_equal @subject.snapshots.size, 1
@@ -85,15 +85,15 @@ class TestLexerEngine < MiniTest::Unit::TestCase
     @subject.add_snapshot
     assert_equal @subject.snapshots.size, 2
   end
-  
-  
+
+
   def test_pop_snapshot()
     @subject.input = @sample_text
     @subject.scan(/.+/)
-    
+
     assert_empty @subject.snapshots
     @subject.add_snapshot
-    assert_equal @subject.snapshots.size, 1 
+    assert_equal @subject.snapshots.size, 1
 
     snapshot = @subject.pop_snapshot()
     assert_equal snapshot.scan_position, @subject.scanner.pos()
@@ -104,24 +104,25 @@ class TestLexerEngine < MiniTest::Unit::TestCase
     expected = { :line_positioning => @subject.current_state(:line_positioning),
       :token_recognition => @subject.current_state(:token_recognition)
     }
-    assert_equal snapshot.stm_state, expected  
+    assert_equal snapshot.stm_state, expected
   end
-  
+
+
   def test_restore_snapshot()
     @subject.input = @sample_text
-    
+
     # Store the current engine aggregate state
-    @subject.add_snapshot() 
-    
+    @subject.add_snapshot()
+
     # Read the first lexeme
     last_token = @subject.scan(/.+/)
     last_token.must_equal :indentation
-    
+
     @subject.restore_snapshot() # We should be back at the start
     last_token = @subject.scan(/.+/)
-    last_token.must_equal :indentation    
+    last_token.must_equal :indentation
   end
-  
+
 
 end # class
 
@@ -770,5 +771,94 @@ describe "Test cases: TC38, TC42, TC44, TC46, TC48, TC50, TC52" do
   end
 
 end #describe
+
+
+describe "Scanning multiple lines of text" do
+  before do
+    @sample_input = <<-SAMPLE
+1234 # Comment 1
+  /* Comment 2*/ 5678
+90
+SAMPLE
+  end
+  
+  subject do
+    instance = RaccLexer::LexerEngine.new
+    instance.input = @sample_input
+    instance
+  end
+
+  it "should scan multiple lines of text" do
+    actual_token = subject.scan(/\d+/)
+    actual_token.must_equal :token
+    subject.lexeme.must_equal '1234'
+    subject.lineno.must_equal 1
+    subject.line_offset.must_equal 0
+    
+    actual_token = subject.scan(/\.+/)
+    actual_token.must_equal :eol
+    subject.lineno.must_equal 1
+    subject.line_offset.must_equal 0
+
+    actual_token = subject.scan(/\.+/)
+    actual_token.must_equal :indentation
+    subject.lineno.must_equal 2
+    subject.line_offset.must_equal 0     
+  end
+
+end # describe
+
+
+
+describe "Scanning multi-line tokens" do
+  before do
+    # Simplified regex for triple quote string
+    @doc_string_pattern = /"""(?:([^"]|"(?!""))*)"""/m
+    @sample_input = <<-SAMPLE
+1234 5678 # A comment
+"""
+  A very very long
+  boring and
+  bland text
+"""
+890 *
+SAMPLE
+  end
+  
+  subject do
+    instance = RaccLexer::LexerEngine.new
+    instance.input = @sample_input
+    instance
+  end
+  
+  it "should scan multiline lexemes" do
+    actual_token = subject.scan(/\d+/)
+    actual_token.must_equal :token
+    subject.lexeme.must_equal '1234'
+    
+    actual_token = subject.scan(/\d+/)
+    actual_token.must_equal :token
+    subject.lexeme.must_equal '5678'
+    subject.lineno.must_equal 1
+    
+    actual_token = subject.scan(/\.+/)
+    actual_token.must_equal :eol
+    subject.lineno.must_equal 1
+    
+    actual_token = subject.scan(@doc_string_pattern)
+    actual_token.must_equal :token
+    subject.lineno.must_equal 6
+
+    actual_token = subject.scan(/\.+/)
+    actual_token.must_equal :eol
+    subject.lineno.must_equal 6
+
+    actual_token = subject.scan(/\d+/)
+    actual_token.must_equal :token
+    subject.lexeme.must_equal '890'
+    subject.lineno.must_equal 7    
+  end
+  
+end # describe
 
 # End of file

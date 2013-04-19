@@ -273,8 +273,9 @@ public
         if multiline
           lines = lexeme.split(eol_pattern)
           @lineno += lines.size - 1
+        else
+          expected_char_checked_stm_line() # STM event        
         end
-        expected_char_checked_stm_line() # STM event
         token_recognized() # STM event
         return :token
       end

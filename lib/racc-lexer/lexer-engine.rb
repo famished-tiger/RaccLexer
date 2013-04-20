@@ -63,9 +63,10 @@ class LexerEngine
   # The current line number in the input text
 	attr_reader(:lineno)
 
-	# The position in the input text just after the last encountered newline.
+	# The position in the input text just after the last encountered end of line (eol) or the start of stream.
 	attr_reader(:line_offset)
 
+  
   # A stack of SoulSnapshot objects. Each keeping track of the execution state of the lexer engine.
   attr_reader(:snapshots)
 
@@ -140,7 +141,7 @@ token_recognized: the scanner recognized a valid token in the input stream.
 
     # Event: the scanner is ready to scan past an eol
     event :after_eol do
-      transition :from => [:at_line_end], :to => :at_line_start
+      transition :from => [:at_line_end], :to => :at_line_start, :on_transition => :begin_line
     end
 
 
@@ -229,8 +230,9 @@ public
         @scanner.string = input_text
       end
     end
-
-    self.input_given # Trigger an event for one state machine
+    @eol_position = 0
+    
+    input_given() # Trigger an event for one of the state machine
   end
 
 
@@ -248,9 +250,7 @@ public
 
     token_enqueued() if token_recognition_state == :recognized
     if complete_state_name() == [:at_line_end, :ready]
-      clear_lexeme()
-      line_offset = 0
-      @lineno += 1
+ 
       after_eol() # Event
     end 
      
@@ -327,6 +327,14 @@ public
 
     return scanner.eos?()
 	end
+  
+  # The last returned lexeme was an eol.
+  # Prepare the scanner to work on another line.
+  def begin_line()
+    clear_lexeme()
+    line_offset = scanner.pos()
+    @lineno += 1  
+  end
 
   ###########
   # Pattern-based methods

@@ -803,7 +803,12 @@ SAMPLE
     actual_token = subject.scan(/\.+/)
     actual_token.must_equal :indentation
     subject.lineno.must_equal 2
-    subject.line_offset.must_equal 0     
+    subject.line_offset.must_equal 0
+
+    actual_token = subject.scan(/\d+/)
+    actual_token.must_equal :token
+    subject.lineno.must_equal 2
+    # subject.line_offset.must_equal 17       # TODO: make it pass
   end
 
 end # describe

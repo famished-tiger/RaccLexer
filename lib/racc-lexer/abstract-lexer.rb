@@ -2,197 +2,61 @@
 
 require "pp"
 require 'strscan'	# Use StringScanner for low-level scanning
-require "edge-state-machine"  # https://github.com/danpersa/edge-state-machine
+#require "edge-state-machine"  # https://github.com/danpersa/edge-state-machine
 
 require_relative '../abstract-method'
+require_relative 'lexer-engine'
 require_relative 'token'
 require_relative 'token-queue'
 
 module RaccLexer	# This module is used as a namespace
 
 
-=begin
-
-List of events:
-(the events are notifications of happenings that might potential change the scan position and are related to the text being currently scanned).
-eol_checked: the scanner found an end-of-line in the input stream. Position at eol. The eol is not in lexeme.
-not_eol_checked: the scanner found any char that is NOT part of end-of-line in the input stream.
-eos_detected: the scanner position is at the end of the input stream.
-noise_skipped: the scanner found and skipped noise text in the input stream. Position after noise. Noise is not in lexeme.
-indentation_scanned: the scanner found an indentation in the input stream. The indentation is in the lexeme.
-expected_char_checked: the scanner found a character that could be the begin of a valid token.
-unexpected_char_checked: the scanner detected an unexpected character (i.e. a character that cannot be part of some token).
-token_recognized: the scanner recognized a valid token in the input stream.
-=end
-
-
 class AbstractLexer
   include AbstractMethod   # Mixin module to mark some methods as abstract
-  include EdgeStateMachine # Mixin module to implement state machines
-
-	# Link to the shared low-level scanner (behaves as a StringScanner)
-	attr_reader(:scanner)
-
-	# Lexeme being recognized. A lexeme is an extract from the input text that is a recognized as a token of the language.
-	attr_reader(:lexeme)
+  # State-machines that keep track of the state wrt. position in line, token recognition
+  attr_reader(:engine)
 
 	# A FIFO queue of tokens. Since the lexer can enqueue multiple tokens at once,
 	# the queue reduces the need to keep the lexer's state between next_token invokation.
 	attr_reader(:queue)
 
-  # A boolean that indicates whether the Lexer should treat indentations as significant or
+  # A boolean that indicates whether the lexer should treat indentations as significant or
   # ignored. When indentations are significant, they are treated as particular tokens.
   attr(:significant_indentation, true)
 
   # A boolean that indicates whether an end-of-line results in an output token
   attr(:eol_as_token, true)
 
-  # The current line number in the input text
-	attr_reader(:lineno)
-
-	# The position in the input text just after the last encountered newline.
-	attr_reader(:line_offset)
-
-  # State machine dedicated to track the current scan position w.r.t. current line of text.
-  state_machine :line_positioning do
-    # Name of the initial state (optional). If absent, the initial state will be the first state defined.
-    initial_state :at_line_start
-
-    #######################
-    # State definition part
-    #######################
-    state :at_line_start do
-      enter :reset_indentation_length # Entry action (Not executed in case of initial state)
-    end
-
-    state :after_indentation do
-      enter :emit_indentation # Entry action
-    end
-
-    state :in_line_body
-
-    state :at_line_end do
-      enter :eat_eol  # Entry action
-    end
-
-
-    #######################
-    # Event definition part
-    #######################
-
-    # This event is triggered only when the Lexer recognises the indentation.
-    # The i_ prefix means that this event should be triggred by the method 'indentation_scanned'.
-    event :i_indentation_scanned do
-      transition :from => :at_line_start, :to => :after_indentation
-    end
-
-
-    # Event: one end of line just found (but not yet consumed)
-    event :eol_checked do
-      transition :from => [:at_line_start, :after_indentation, :in_line_body, :at_line_end], :to => :at_line_end
-    end
-
-    # Event: a character for a potential token just detected
-    event :expected_char_checked_stm_line do
-      transition :from => [:at_line_start, :after_indentation, :in_line_body], :to => :in_line_body
-    end
-
-    # Event: a non-eol token was detected
-    event :not_eol_checked do
-      transition :from => [:at_line_end], :to => :at_line_start
-    end
-
-
-  end # state_machine
-
-
-
-  # State machine dedicated to the recognition of tokens.
-  state_machine :token_recognition do
-    initial_state :waiting_for_input      # Name of the initial state.
-
-    # The lexer waits for an input text.
-    state :waiting_for_input
-
-    # The lexer is ready to find any token in the input text.
-    state :ready do
-      enter :clear_lexeme # Entry action
-    end
-
-    # The lexer tries to match the current lexeme to a token of the language.
-    state :tokenizing
-
-    state :recognized
-
-    # End states
-    state :done do
-      enter :complete_scan
-    end
-
-    state :failed # Error state: an unexpected character occurred while Lexer was trying to recognize a lexeme
-    state :aborted  # Error state: an unexpected eos occurred while Lexer was trying to recognize a lexeme
-
-    # Event: the text to scan was just provided
-    event :input_given do
-      transition :from => [:waiting_for_input, :done], :to => :ready, :on_transition => :reset
-    end
-
-    # Event: an end of stream just detected
-    event :eos_detected do
-      transition :from => [:ready, :tokenizing], :to => :done
-      transition :from => :tokenizing, :to => :aborted # Premature eos (occurs when candidate token is not yet fully recognized)
-    end
-
-    # Event: a character for a potential token just detected
-    event :expected_char_checked_stm_token do
-      transition :from => [:ready, :tokenizing], :to => :tokenizing
-    end
-
-
-    # Event: a character in lexeme that doesn't fit any token
-    event :unexpected_char_checked do
-      transition :from => :tokenizing, :to => :failed
-    end
-
-    # Event: current lexeme matches a token.
-    event :token_recognized do
-      transition :from => :tokenizing, :to => :recognized
-    end
-
-    # Event: a token object was just pushed on the queue
-    event :token_enqueued do
-       transition :from => :recognized, :to => :ready
-    end
-
-  end # state_machine
-
 	# Constructor.
   # Initialize language-specific options.
   # [input_text] Optional argument. When present must be a String or a StringScanner.
   #   It is the input to be subjected to lexical analysis.
+  # Examples:
+  #   -could be created without an argument
+  #    AbstractLexer.new()
+  #   -could be created with a String argument
+  #   AbstractLexer.new("3 + 4")
+  #   -could be created with a StringScanner argument
+  #   sample_input = "3 + 4"
+  #   AbstractLexer.new(StringScanner.new(sample_input))
 	def initialize(input_text = nil)
-    @significant_indentation = false
-    @eol_as_token = false
+    @engine = LexerEngine.new
 		@queue = TokenQueue.new
-    self.input = input_text unless input_text.nil?
+    engine.input = input_text unless input_text.nil?
   end
 
 public
+### TODO #### method to remove
+  def scanner()
+    raise NotImplementedError
+  end
+
   # Set the input text to be subjected to the lexical analysis.
 	# [input_text]	Can be either a String or a StringScanner object.
   # It is the input to subjected to the lexical analysis.
   def input=(input_text)
-    if input_text.kind_of?(StringScanner)
-      @scanner = input_text
-    else
-      if @scanner.nil?
-        @scanner =  StringScanner.new(input_text)
-      else
-        @scanner.string = input_text
-      end
-    end
-
-    input_given() # Trigger a state change with this event
+    engine.input = input_text
   end
 
 
@@ -215,22 +79,6 @@ public
     theToken = queue.dequeue()
 		return theToken
   end
-
-  
-	# Read unconditionally the character at current scanning position.
-	# Position is incremented.
-	# Returns the read character or raise an exception if current position is at eos.
-	def next_char()	
-		ch = @scanner.getch()
-		
-		if ch.nil?
-			eos_detected()	# Emit event
-		else 
-			lexeme << ch
-		end
-		
-		return ch
-	end
  
  
 	# Return a single character token.
@@ -252,23 +100,14 @@ public
   # It is thus a couple of the form:
   # [ name of position in line state, name of token recognition state ]
   def complete_state_name()
-    position_in_line_state = current_state_name(:line_positioning)
-    token_recognition_state = current_state_name(:token_recognition)
-
-    return [ position_in_line_state, token_recognition_state]
+    return engine.complete_state_name()
   end
 
 
   # Return the name of the current state of the 'token_recognition' STM.
   def token_recognition_state()
-    return current_state_name(:token_recognition)
+    return engine.token_recognition_state()
   end
-
-
-	# Return true iff end of input text is reached
-	def eos?()
-		return @scanner.eos?()
-	end
 
 
 	# Enqueue the terminating token in the format expected by a RACC-generated parser.
@@ -292,45 +131,24 @@ public
   # Required by the actions
   def find_rule(aRuleName) abstract_method
   end
-  
-	# Tries to match the text at the current position to the pattern.
-	# If there’s a match, the scanner advances the “scan pointer” and returns the matched string.
-  # The lexeme attributre is updated as well.
-  # TODO: ensure that the implementation complies to the state-machine.  
-	# Otherwise, the scanner returns nil.
-	def scan(aPattern)
-		result = @scanner.scan(aPattern)
-		lexeme << result unless result.nil?
-		
-		return result
-	end
-
-  # Tell the lower-level scanner to move the current scanning position
-  # by the amount of characters in lexeme.
-  # TODO: ensure that the implementation complies to the state-machine.
-  def undo_scan()
-		currPos = scanner.pos() # Retrieve the current scanning position of lower-level scanner.
-		delta = lexeme.length
-		#reset()	# Side-effect: lexeme is zapped
-    clear_lexeme()    
-		scanner.reset()	# Force the scanner to be a position zero AND clear matching data.
-		scanner.pos= currPos - delta
-		@token_pos = scanner.pos
-  end
 
 
 protected
+  # Emit an event for the lexing engine.
+  # [eventSymbol] the symbolic name of one of the engine's events
+  # [arg] additional event arguments
+  def trigger_event(eventSymbol, *args)
+    engine.send(eventSymbol, *args)
+  end
+
+  
   # Initialize the tokenizing state
   def reset()
+    raise NotImplementedError
     @lineno = 1
 		@line_offset = 0
     @token_pos = 0
   end
-
-  # Purpose = Make the lexeme text empty.
-	def clear_lexeme()
-		@lexeme = ''
-	end
 
   # Purpose: scan the input text for one (or more) token(s).
   # Each found token is then enqueued

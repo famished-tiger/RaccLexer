@@ -164,16 +164,58 @@ describe AbstractLexer do
 =end 
 
 
-=begin  
+
+#####################
+# Defining a lexer subclass to test lexical analysis of a (simplified) line oriented language
+#####################
+class Lexer4LineOriented < AbstractLexer
 
 
-  
+public
+  # Concrete method implementation.
+  # Returns a regular expression that matches non-significant text.
+  # Whitespaces or comments.
+  def noise_pattern()
+    return /(?: |\t)*(?:#.*)?/  # zero or more [space, tab] possibly followed by a line comment (starting with a '#' character)
+  end
+
+end # class
+
+
+describe Lexer4LineOriented do
+  # Factory method.
+  subject do
+    instance = Lexer4LineOriented.new
+    instance.significant_indentation = true
+    instance
+  end
+ 
   
   ################
-  context 'Single line input (for language with significant indentation)' do
-  
-  end # context  
+  context "in 'at_line_start' state" do
+    it 'should accept the scan_indentation message' do
+      # Case of no indentation
+      subject.input = "123"
+      subject.send(:scan_indentation)
 
+      # Test the state after event handling
+      subject.complete_state_name.should == [:at_line_start, :ready]
+      
+      
+      # Case of indentation present
+      instance = Lexer4LineOriented.new
+      instance.significant_indentation = true
+      instance.input = "    123"
+      instance.send(:scan_indentation)
+
+      # Test the state after event handling
+      instance.complete_state_name.should == [:after_indentation, :ready]      
+
+    end  
+  end # context
+
+end # describe  
+=begin 
   ################
   context 'Single line input (for line-oriented language)' do
   end # context   
@@ -189,17 +231,7 @@ describe AbstractLexer do
       lambda { subject.indentation_scanned() }.should raise_error
     end
 
-    it 'should accept the indentation_scanned event (when indentations are significant)' do
-      subject.significant_indentation = true
 
-      # Firing the event under testing ...
-      subject.indentation_scanned()
-
-      # Test the state after event handling
-      subject.complete_state_name.should == [:after_indentation, :waiting_for_token]
-
-      # TODO: check that indentation token is emitted.
-    end
 
     it 'should accept the eol_checked' do
       # Consider eol as a token (to emit)

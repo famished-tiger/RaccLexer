@@ -63,11 +63,14 @@ class LexerEngine
   # The current line number in the input text
 	attr_reader(:lineno)
 
-	# The position in the input text just after the last encountered end of line (eol) or the start of stream.
+	# The position of the start of current line being scanned.
+  # The position is relative to the start of stream.
+  # Initially equal to zero then to position just after the last
+  # encountered end of line (eol).
 	attr_reader(:line_offset)
 
   
-  # A stack of SoulSnapshot objects. Each keeping track of the execution state of the lexer engine.
+  # A stack of EngineSnapshot objects. Each keeping track of the execution state of the lexer engine.
   attr_reader(:snapshots)
 
 
@@ -215,6 +218,7 @@ public
   # Constructor
   def initialize()
     @snapshots = []
+    @scanner = nil
   end
 
   # Set the input text to be subjected to the lexical analysis.
@@ -249,12 +253,11 @@ public
     raise LexicalError.new("No input text was provided.", LexemePosition::at_start) if end_state_scanning()
 
     token_enqueued() if token_recognition_state == :recognized
-    if complete_state_name() == [:at_line_end, :ready]
- 
+    if in_state?(:at_line_end, :ready)
       after_eol() # Event
     end 
      
-    if current_state_name(:line_positioning) == :at_line_start
+    if in_state?(:at_line_start, nil)
       indentation_found = indentation_pattern.nil? ? nil : scanner.check(indentation_pattern)
       if indentation_found
         indentation_scanned() # STM event
@@ -279,7 +282,8 @@ public
         lexeme << result
         if multiline
           lines = lexeme.split(eol_pattern)
-          @lineno += lines.size - 1       
+          @lineno += lines.size - 1
+          @line_offset = scanner.pos() - lines.last.size
         end
         expected_char_checked_stm_line() # STM event
         token_recognized() # STM event
@@ -304,6 +308,32 @@ public
     token_recognition_state = current_state_name(:token_recognition)
 
     return [ position_in_line_state, token_recognition_state]
+  end
+
+  # Return true if the current state matches the given set of sub-states
+  # [ name of position in line state, name of token recognition state ]  
+  def in_state?(positionInLineState, tokenRecognitionState)
+    match1 = if positionInLineState
+      current_state_name(:line_positioning) == positionInLineState
+    else
+      true
+    end
+    
+    return false unless match1    
+    
+    match2 = if tokenRecognitionState
+      current_state_name(:token_recognition) == tokenRecognitionState
+    else
+      true
+    end
+    
+    result = if positionInLineState || tokenRecognitionState
+      match1 && match2
+    else
+      false
+    end
+    
+    return result
   end
 
 
@@ -332,7 +362,7 @@ public
   # Prepare the scanner to work on another line.
   def begin_line()
     clear_lexeme()
-    line_offset = scanner.pos()
+    @line_offset = scanner.pos()
     @lineno += 1  
   end
 
@@ -373,6 +403,7 @@ public
   # Pre-condition: eol is at current scanning position.
   def eat_eol()
     @lexeme = scanner.scan(eol_pattern)     # Copy eol into the lexeme attribute
+    @line_offset = scanner.pos()    
   end
 
   def eat_indentation()

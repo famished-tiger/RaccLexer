@@ -19,26 +19,26 @@ module RaccLexer # This module is used as a namespace
 class TokenQueue
   # The lower-level queue of tokens
   attr_reader(:tokens)
-  
+
   # A Hash with with pairs of the kind:
   # token type => TransformRule
   attr_reader(:rules)
-  
-  
+
+
   # Constructor.
   # [transformRules] An Array of TransformRule objects
   def initialize(transformRules = [])
     @tokens = []
     @rules = {}
-    
+
     transformRules.each do |a_rule|
       raise TypeError unless a_rule.kind_of?(TransformRule)
       raise LexerRuleError "More than one transform rule for token type '#{ a_rule.token_type}'" if rules.has_key? a_rule.token_type
-     
+
       @rules[a_rule.token_type] = a_rule # Add the rule...
     end
   end
-  
+
 public
   # Return true iff there is no element in the queue.
   def empty?
@@ -52,27 +52,27 @@ public
   def enqueue(aTokenCouple)
     valid_couple = validated_couple(aTokenCouple)
     (token_type, token_object) = valid_couple
-    
+
     if rules.has_key?(token_type)
       transformed = rules[token_type].apply_to(token_object)
       return if transformed.nil?  # A nil means: ignore the token (= don't enqueue it)
-      
+
       # Enqueue the resulting pair after its validation.
       tokens.unshift(validated_couple(transformed))
     else
       tokens.unshift(valid_couple)
     end
   end
-  
+
   # Take an element from the queue.
   # An InternalLexerError exception is raised if the queue is empty.
   def dequeue()
     element = tokens.pop()
     raise InternalLexerError.new("cannot dequeue: the token queue is already empty.", nil) if element.nil?
-    
+
     return element
   end
-  
+
 private
   # Validation method. Checks that the argument is:
   # -An array with 2 elements
@@ -83,7 +83,7 @@ private
     raise InternalLexerError.new("token queue accepts Array of size 2 only.", nil) unless aTokenCouple.size == 2
     (token_type, token_object) = aTokenCouple
     raise InternalLexerError.new("token type must be a String, Symbol or false found a #{token_type.class} instead.", nil) unless [String, Symbol, FalseClass].include? token_type.class
-    
+
     return aTokenCouple
   end
 end # class

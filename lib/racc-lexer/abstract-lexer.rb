@@ -1,8 +1,6 @@
 # File: abstract-lexer.rb
 
 require "pp"
-require 'strscan'	# Use StringScanner for low-level scanning
-#require "edge-state-machine"  # https://github.com/danpersa/edge-state-machine
 
 require_relative '../abstract-method'
 require_relative 'lexer-engine'
@@ -14,6 +12,7 @@ module RaccLexer	# This module is used as a namespace
 
 class AbstractLexer
   include AbstractMethod   # Mixin module to mark some methods as abstract
+
   # State-machines that keep track of the state wrt. position in line, token recognition
   attr_reader(:engine)
 

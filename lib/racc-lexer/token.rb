@@ -19,7 +19,7 @@ class Token
 
 
 	# Constructor.
-  # [theValue]. See doc of 'value' attribute. 
+  # [theValue]. See doc of 'value' attribute.
   # [theLexeme]. See doc of 'lexeme' attribute.
   # [aPosition]. See doc of 'position' attribute.
   # Example:
@@ -42,10 +42,10 @@ public
 		are_equal = case anotherToken
 			when String
 				anotherToken == value
-        
+
 			when Token
 				(lexeme == anotherToken.lexeme) && (value == anotherToken.value) && (position == anotherToken.position)
-        
+
 			when Array	# [value/lexeme, a position array]
 				(value == anotherToken.first) && (position == anotherToken.last)
 			else

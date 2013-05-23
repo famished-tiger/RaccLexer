@@ -22,7 +22,7 @@ end # class
 class LexerSetupError < LexerError
 end # class
 
-# A specialised exception class that indicates that an issue in the rules provided to the lexer occurred. 
+# A specialised exception class that indicates that an issue in the rules provided to the lexer occurred.
 class LexerRuleError < LexerError
 end # class
 
@@ -33,14 +33,14 @@ end # class
 class LexingError < LexerError
 	# Record the token position that caused the error.
 	attr_reader(:position)
-  
+
 	# Constructor.
 	# [anErrorMessage]	An error message text
 	# [aPosition]	A TokenPosition object that specifies where the token is located in the input text.
 	def initialize(anErrorMessage, aPosition)
 		super(anErrorMessage)
 		@position = aPosition
-	end  
+	end
 
 end # class
 

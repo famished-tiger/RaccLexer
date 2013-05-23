@@ -6,7 +6,6 @@ require_relative '../rspec_helper'
 require_relative '../../lib/racc-lexer/lexer-rule'
 require_relative '../../lib/racc-lexer/lexer-ruleset'  # The class under test
 
-
 # Reopen the module, in order to get rid of fully qualified names
 module RaccLexer	# This module is used as a namespace
   describe LexerRuleset do

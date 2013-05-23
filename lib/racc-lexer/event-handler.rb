@@ -4,6 +4,7 @@ require_relative 'lexer-exceptions'
 
 module RaccLexer # This module is used as a namespace
 
+
 # In essence, an event handler is a pair: pattern or string => action. It specifies the action to launch
 # when the current lexeme matches the pattern.
 # Example:

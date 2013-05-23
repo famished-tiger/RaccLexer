@@ -15,7 +15,7 @@ describe AbstractLexer do
   SampleText = 'sample text'
 
   subject { AbstractLexer.new }
-   
+
   it 'should be in the proper initial state' do
     position_in_line_state, token_recognition_state = subject.complete_state_name()
     [position_in_line_state, token_recognition_state].must_equal [:at_line_start, :waiting_for_input]
@@ -28,53 +28,53 @@ describe AbstractLexer do
     it 'should consider an eol as a non token by default' do
       subject.eol_as_token.wont_equal true
     end
-    
+
     it 'should refuse to scan in absence of input text' do
       lambda { subject.next_token() }.must_raise(LexicalError) #, "No input text was provided.")
     end
-    
+
     it 'should have an empty token queue' do
       subject.queue.must_be_empty
     end
 
-  
+
 
   # context: Providing the input text
     it 'should accept the input as a String argument' do
       subject.input = SampleText
       subject.engine.scanner.string.must_equal SampleText
-    end 
-    
+    end
+
     it 'should accept the input as a StringScanner argument' do
       stream = StringScanner.new(SampleText)
       subject.input = stream
       subject.engine.scanner.must_equal stream
-    end   
-   
+    end
+
 
     it 'should have its low-level scanner correctly initialized' do
       subject.input = SampleText
       subject.engine.scanner.must_be_kind_of(StringScanner)
       subject.engine.scanner.string.must_equal SampleText
     end
-    
-    
+
+
     it 'should be in ready state to recognize token(s) in the input stream' do
       subject.input = StringScanner.new(SampleText)
       state = subject.engine.complete_state_name()
       state.must_equal [:at_line_start, :ready]
-    end 
+    end
 
-    
+
     it 'should be reset after the text input is given' do
       subject.input = StringScanner.new(SampleText)
       subject.engine.lineno.must_equal 1
       subject.engine.line_offset.must_equal 0
       subject.queue.must_be_empty
-    end    
-  
+    end
 
-=begin  
+
+=begin
 
   # test each state machine independently of the other
   # First, consider all the states of line_positioning STM
@@ -82,8 +82,8 @@ describe AbstractLexer do
   # Third one tries a set of scenarios based on the line_pattern syntax_diagram.
   # Lastly, one controls the indentation management
   ######################################
-  
-  ###################################### 
+
+  ######################################
   # Underlying test assumption: the lexemes in a text line occur
   # according to the syntax diagram:
   # ()->+----------------->+-->+-->+------------>+-->+-->+-- eol -->+-->()
@@ -94,7 +94,7 @@ describe AbstractLexer do
   #                            |                     v
   #                            +<------ token <------+
   #
-  # Test strategy   
+  # Test strategy
   # -Empty input testing.
   # -Single line input testing. Derive test cases from the line pattern (diagram above).
   #   Do it for languages that are indentation/line sensitive or not.
@@ -103,7 +103,7 @@ describe AbstractLexer do
   # The following list enumerates the plausible test cases for:
   # -Empty input testing
   # -Single line input testing
-  
+
 =begin
 |1|eos|
 |2|eol|
@@ -157,7 +157,7 @@ describe AbstractLexer do
 |50|indentation|noise|token|token|noise|eol|
 |51|indentation|token|noise|token|noise|eos|
 |52|indentation|token|noise|token|noise|eol|
-=end 
+=end
 
 
 
@@ -185,8 +185,8 @@ describe Lexer4LineOriented do
     instance.significant_indentation = true
     instance
   end
- 
-=begin  
+
+=begin
   ################
   context "in 'at_line_start' state" do
     it 'should accept the scan_indentation message' do
@@ -196,8 +196,8 @@ describe Lexer4LineOriented do
 
       # Test the state after event handling
       subject.complete_state_name.should == [:at_line_start, :ready]
-      
-      
+
+
       # Case of indentation present
       instance = Lexer4LineOriented.new
       instance.significant_indentation = true
@@ -205,21 +205,21 @@ describe Lexer4LineOriented do
       instance.send(:scan_indentation)
 
       # Test the state after event handling
-      instance.complete_state_name.should == [:after_indentation, :ready]      
+      instance.complete_state_name.should == [:after_indentation, :ready]
 
-    end  
+    end
   end # context
-=end 
-end # describe 
+=end
+end # describe
 
-=begin 
+=begin
   ################
   context 'Single line input (for line-oriented language)' do
-  end # context   
-  
- 
+  end # context
 
-  
+
+
+
 
   # Considering the states of line_positioning STM
   context "in 'at_line_start' state" do
@@ -425,23 +425,23 @@ end # describe
 
       subject.current_state_name(:token_recognition).should == :done
     end
-    
+
     it 'should accept the unexpected_char_checked' do
       # Fire the event under testing ...
       subject.unexpected_char_checked()
 
-      subject.current_state_name(:token_recognition).should == :failed    
+      subject.current_state_name(:token_recognition).should == :failed
     end
   end # context
-  
-  
+
+
   context "in 'recognised' state" do
     # Construction of default instance object named 'subject'
     subject do
       instance = AbstractLexer.new()
       instance.expected_char_checked()
       instance.token_recognised()
-      
+
       instance
     end
 
@@ -453,7 +453,7 @@ end # describe
       subject.current_state_name(:token_recognition).should == :waiting_for_token
     end
 
-  end # context 
+  end # context
 
 
   context 'lexemes occurring in text lines' do
@@ -466,16 +466,16 @@ end # describe
     #                            |                     |
     #                            |                     v
     #                            +<------ token <------+
-    
+
     it 'should accept eos as input' do
       subject.eos_detected
-      
+
     end
-    
+
   end # context
-  
-=end 
-=begin 
+
+=end
+=begin
 end # describe
 
 
@@ -501,50 +501,50 @@ describe Lexer4BlockDelimited do
   ################ CONTEXT
   context 'Empty input testing' do
     # Overriding the construction of an object named 'subject'
-    subject { 
-      instance = Lexer4BlockDelimited.new 
+    subject {
+      instance = Lexer4BlockDelimited.new
       instance.input = ''
       instance
     }
-  
+
     it 'should return the eos marker' do
 			actual_result = subject.next_token()
-      
+
       expected_result = [false, ['$', [0, 1]]]	# eos token at position: offset = 0, lineno = 1
 			actual_result.should == expected_result
     end
-    
+
     it "should be in state 'done' after gobbling the eos" do
       subject.next_token()
       subject.token_recognition_state.should == :done
     end
   end # context
-  
+
   ################ CONTEXT
-  context 'Single line input' do  
+  context 'Single line input' do
     it 'should handle a line consisting of 0..1 noise followed by a eos or eol (TC2, TC3, TC4)' do
-      test_vectors = [ 
+      test_vectors = [
         #[ input,         [ expected_offset, expected_lineno ] ]
         [ "\n",           [1, 2] ], # TC2
         [ "  #comment",  [10, 1] ], # TC3
         [ "  #comment\n",[11, 2] ]  # TC4
       ]
-      
+
       test_vectors.each do |(input_text, expected_pos)|
         subject.input = input_text
         actual_result = subject.next_token()
-        
+
         # Expect to return an eos
         expected_result = [false, ['$', expected_pos]]	# eos token at position: offset = 1, lineno = 2
         actual_result.should == expected_result
-        
+
         # Should be in state 'done' after gobbling the eol
         subject.token_recognition_state.should == :done
       end
     end
 
 
-  end # context  
+  end # context
 =end
 end # describe
 

@@ -26,11 +26,11 @@ class LexemePosition
   # [aPositionInLine] See doc of attribute 'lineno'.
   # An exception is raised when the last argument infringes the line_pos invariant.
 	def initialize(anOffset, aLineNumber, aPositionInLine)
-		@offset, @lineno  = anOffset, aLineNumber  
-    @line_pos = valid_line_offset(aPositionInLine)  
+		@offset, @lineno  = anOffset, aLineNumber
+    @line_pos = valid_line_offset(aPositionInLine)
 	end
-  
-  
+
+
   # Factory method. Constructs a position object that designates the
   # start of the input text.
   def self.at_start()
@@ -83,14 +83,14 @@ public
 
 		return are_equal
 	end
-  
+
 private
-  # Validation method. 
+  # Validation method.
   # Check that the value of the position in line is in the correct range.
   # Return the valid value, otherwise an exception is raised.
   def valid_line_offset(aPositionInLine)
     raise InternalLexerError.new("invalid value for position relative to start of in line", nil) if aPositionInLine > (@offset - @lineno + 1)
-    
+
     return aPositionInLine
   end
 

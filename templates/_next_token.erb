@@ -1,0 +1,21 @@
+
+
+  def _next_token
+    text = @ss.peek(1)
+    @lineno  +=  1  if text == "\n"
+    token = case @state
+    when nil
+      case<%rules[:nil].each do |(pattern, action)|%>
+      when (text = @ss.scan(/<%=pattern%>/))
+        <%= action.empty? ? ';' : "action {#{action}}"%>
+<%end%>
+      else
+        text = @ss.string[@ss.pos .. -1]
+        raise  ScanError, "can not match: '" + text + "'"
+      end  # if
+
+    else
+      raise  ScanError, "undefined state: '" + state.to_s + "'"
+    end  # case state
+    token
+  end  # def _next_token

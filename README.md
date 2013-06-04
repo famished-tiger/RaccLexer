@@ -1,5 +1,5 @@
-#RaccLexer#
-
+#RaccLexer
+## Work In Progress
 [Homepage](https://github.com/famished-tiger/RaccLexer)
 
 
@@ -18,4 +18,8 @@ approximate token position in source text)
 - Support languages with off-side rules (like for instance, Python)
  
 ##Similar projects##
-[rexical](https://github.com/tenderlove/rexical) It is a lexer generator.
+[rexical](https://github.com/tenderlove/rexical) It is a lexer generator.  
+[rubylexer] (https://github.com/coatl/rubylexer) A lexer specialized for the lexical analysis of the Ruby language.  
+[lexr] (https://github.com/brightbits/lexr) A lightweight and pretty lexical analyser.  
+[rlex] (https://github.com/borgsmidt/rlex) Implements a simple lexer using a StringScanner. Designed to work with Racc.  
+[minilex] (https://github.com/satchmorun/minilex) It's designed for the cases where parsers do the parsing, and all you need from your lexer is an array of simple tokens.  
